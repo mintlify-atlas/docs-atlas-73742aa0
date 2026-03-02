@@ -1,0 +1,106 @@
+---
+title: 'Test Monitor URL'
+api: 'POST /v1/monitors/test'
+---
+
+Test a monitor URL configuration without creating a monitor. This endpoint allows you to verify that your URL, headers, authentication, and other settings work correctly before creating or updating a monitor.
+
+## Request Body
+
+<ParamField body="url" type="string" required>
+  Target URL to test
+</ParamField>
+
+<ParamField body="method" type="string" default="GET">
+  HTTP method (e.g., GET, POST, PUT, DELETE)
+</ParamField>
+
+<ParamField body="body" type="string">
+  Request body content for POST/PUT requests
+</ParamField>
+
+<ParamField body="headers" type="object">
+  Custom HTTP headers to include in the request (key-value pairs)
+</ParamField>
+
+<ParamField body="auth" type="object">
+  Authentication configuration (key-value pairs)
+</ParamField>
+
+## Response
+
+<ResponseField name="ok" type="boolean" required>
+  Whether the request was successful (2xx status code)
+</ResponseField>
+
+<ResponseField name="status" type="integer" required>
+  HTTP status code received from the target URL
+</ResponseField>
+
+<ResponseField name="statusText" type="string" required>
+  HTTP status text (e.g., "OK", "Not Found")
+</ResponseField>
+
+<ResponseField name="headers" type="object" required>
+  Response headers from the target URL (key-value pairs)
+</ResponseField>
+
+<ResponseField name="body" type="any">
+  Response body from the target URL. Can be JSON, text, or null.
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST http://localhost:8080/v1/monitors/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://api.example.com/health",
+    "method": "GET",
+    "headers": {
+      "User-Agent": "Goanna-Monitor/1.0"
+    }
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "ok": true,
+  "status": 200,
+  "statusText": "OK",
+  "headers": {
+    "content-type": "application/json",
+    "content-length": "15",
+    "date": "Mon, 02 Mar 2026 10:30:00 GMT"
+  },
+  "body": {
+    "status": "ok"
+  }
+}
+```
+
+## Example Error Response
+
+```json
+{
+  "ok": false,
+  "status": 404,
+  "statusText": "Not Found",
+  "headers": {
+    "content-type": "application/json",
+    "content-length": "35",
+    "date": "Mon, 02 Mar 2026 10:30:00 GMT"
+  },
+  "body": {
+    "error": "Resource not found"
+  }
+}
+```
+
+## Error Responses
+
+<ResponseField name="400">
+  Invalid request body - check that the URL is valid and properly formatted
+</ResponseField>

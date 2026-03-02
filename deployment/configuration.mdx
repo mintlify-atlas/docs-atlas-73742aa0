@@ -1,0 +1,393 @@
+---
+title: Configuration Reference
+description: Complete reference for Goanna environment variables and runtime configuration
+---
+
+Goanna is configured through environment variables. This page documents all available configuration options with their descriptions, defaults, and examples.
+
+## Environment Variables
+
+All environment variables are optional and have sensible defaults for running Goanna out of the box.
+
+### Web Server Configuration
+
+#### GOANNA_WEB_HOST
+
+The host address the web server binds to.
+
+- **Type:** String
+- **Default:** `0.0.0.0`
+- **Docker Default:** `0.0.0.0`
+
+<CodeGroup>
+
+```bash Shell
+export GOANNA_WEB_HOST=127.0.0.1
+```
+
+```yaml Docker Compose
+environment:
+  GOANNA_WEB_HOST: 127.0.0.1
+```
+
+```bash docker run
+docker run -e GOANNA_WEB_HOST=127.0.0.1 goanna:latest
+```
+
+</CodeGroup>
+
+<Note>
+Use `0.0.0.0` to accept connections from any network interface. Use `127.0.0.1` to restrict to localhost only.
+</Note>
+
+#### GOANNA_WEB_PORT
+
+The external port the web server listens on.
+
+- **Type:** String (numeric)
+- **Default:** `9044`
+- **Docker Default:** `9044`
+
+<CodeGroup>
+
+```bash Shell
+export GOANNA_WEB_PORT=3000
+```
+
+```yaml Docker Compose
+environment:
+  GOANNA_WEB_PORT: '3000'
+ports:
+  - '3000:3000'
+```
+
+```bash docker run
+docker run -e GOANNA_WEB_PORT=3000 -p 3000:3000 goanna:latest
+```
+
+</CodeGroup>
+
+<Note>
+When changing this port, ensure your Docker port mapping (`-p` flag or `ports:` in Compose) matches the new port.
+</Note>
+
+#### GOANNA_WEB_INTERNAL_PORT
+
+The internal port used by the web server's Nitro engine.
+
+- **Type:** String (numeric)
+- **Default:** `9045`
+- **Docker Default:** `9045`
+
+<CodeGroup>
+
+```bash Shell
+export GOANNA_WEB_INTERNAL_PORT=9045
+```
+
+```yaml Docker Compose
+environment:
+  GOANNA_WEB_INTERNAL_PORT: '9045'
+```
+
+</CodeGroup>
+
+<Note>
+This port is for internal use only and should not be exposed outside the container. It's used by the TanStack Start/Nitro runtime.
+</Note>
+
+### API Server Configuration
+
+#### GOANNA_API_ADDR
+
+The address and port the API server binds to.
+
+- **Type:** String
+- **Default:** `:8080`
+- **Docker Default:** `:8080`
+- **Format:** `[host]:port` (e.g., `:8080`, `127.0.0.1:8080`)
+
+<CodeGroup>
+
+```bash Shell
+export GOANNA_API_ADDR=:8080
+```
+
+```yaml Docker Compose
+environment:
+  GOANNA_API_ADDR: ':8080'
+```
+
+```bash docker run
+docker run -e GOANNA_API_ADDR=:3001 goanna:latest
+```
+
+</CodeGroup>
+
+<Note>
+The colon prefix (`:8080`) means "bind to all interfaces on port 8080". Specify a host (e.g., `127.0.0.1:8080`) to restrict binding.
+</Note>
+
+#### GOANNA_API_INTERNAL_URL
+
+The internal URL used by the web gateway to proxy API requests.
+
+- **Type:** String (URL)
+- **Default:** `http://127.0.0.1:8080`
+- **Docker Default:** `http://127.0.0.1:8080`
+
+<CodeGroup>
+
+```bash Shell
+export GOANNA_API_INTERNAL_URL=http://127.0.0.1:8080
+```
+
+```yaml Docker Compose
+environment:
+  GOANNA_API_INTERNAL_URL: http://127.0.0.1:8080
+```
+
+</CodeGroup>
+
+<Note>
+This should point to the API server's internal address. In the single-container Docker setup, this defaults to `http://127.0.0.1:8080` and typically doesn't need to be changed.
+</Note>
+
+### Database Configuration
+
+#### GOANNA_API_DSN
+
+The SQLite database connection string.
+
+- **Type:** String (DSN)
+- **Default:** `file:./data/goanna.db?_fk=1`
+- **Docker Default:** `file:/app/data/goanna.db?_fk=1`
+- **Format:** `file:<path>?<options>`
+
+<CodeGroup>
+
+```bash Shell
+export GOANNA_API_DSN='file:./data/goanna.db?_fk=1'
+```
+
+```yaml Docker Compose
+environment:
+  GOANNA_API_DSN: file:/app/data/goanna.db?_fk=1
+```
+
+```bash docker run
+docker run -e GOANNA_API_DSN='file:/app/data/goanna.db?_fk=1' goanna:latest
+```
+
+</CodeGroup>
+
+**DSN Components:**
+- `file:` - Protocol for SQLite file-based database
+- `/app/data/goanna.db` - Path to the database file
+- `?_fk=1` - Enable foreign key constraints
+
+<Note>
+The `?_fk=1` parameter enables foreign key constraints in SQLite, which is important for maintaining data integrity.
+</Note>
+
+**Custom Database Location:**
+
+```yaml
+environment:
+  GOANNA_API_DSN: file:/custom/path/goanna.db?_fk=1
+volumes:
+  - /host/custom/path:/custom/path
+```
+
+### Application Configuration
+
+#### GOANNA_MAX_RESPONSE_BODY_BYTES
+
+Maximum response body size in bytes for monitor checks and selector payload caching.
+
+- **Type:** String (numeric)
+- **Default:** `25165824` (24 MB)
+- **Docker Default:** `25165824`
+- **Unit:** Bytes
+
+<CodeGroup>
+
+```bash Shell
+export GOANNA_MAX_RESPONSE_BODY_BYTES=33554432
+```
+
+```yaml Docker Compose
+environment:
+  GOANNA_MAX_RESPONSE_BODY_BYTES: '33554432'  # 32 MB
+```
+
+```bash docker run
+docker run -e GOANNA_MAX_RESPONSE_BODY_BYTES=33554432 goanna:latest
+```
+
+</CodeGroup>
+
+**Common Size Values:**
+
+| Size | Bytes | Value |
+|------|-------|-------|
+| 1 MB | 1,048,576 | `1048576` |
+| 10 MB | 10,485,760 | `10485760` |
+| 24 MB (default) | 25,165,824 | `25165824` |
+| 32 MB | 33,554,432 | `33554432` |
+| 64 MB | 67,108,864 | `67108864` |
+| 128 MB | 134,217,728 | `134217728` |
+
+<Note>
+This limit applies to:
+- HTTP responses fetched during monitor health checks
+- Payload caching for CSS/XPath selectors
+
+Invalid values (non-numeric or negative) will fall back to the default.
+</Note>
+
+## Build-Time Configuration
+
+These variables are set during the Docker image build and cannot be changed at runtime.
+
+### VITE_API_BASE_URL
+
+Configures how the web frontend routes API requests.
+
+- **Type:** String (URL path)
+- **Default:** `/`
+- **Build Stage:** Web builder
+- **When to Set:** During `docker build`
+
+<CodeGroup>
+
+```bash docker build
+docker build -t goanna:latest --build-arg VITE_API_BASE_URL=/ .
+```
+
+```yaml Docker Compose
+services:
+  goanna:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /
+```
+
+</CodeGroup>
+
+**Common Values:**
+
+| Value | Behavior |
+|-------|----------|
+| `/` | Route API calls through the same container's gateway (default) |
+| `http://localhost:8080` | Direct API calls to a separate API server |
+| `https://api.example.com` | Route to an external API endpoint |
+
+<Note>
+Changing this value requires rebuilding the Docker image, as it's embedded into the web bundle during compilation.
+</Note>
+
+## Complete Example Configurations
+
+### Development (Local)
+
+```bash
+export GOANNA_API_ADDR=:8080
+export GOANNA_API_DSN='file:./data/goanna.db?_fk=1'
+export GOANNA_MAX_RESPONSE_BODY_BYTES=25165824
+```
+
+### Production (Docker)
+
+```yaml
+services:
+  goanna:
+    image: ghcr.io/simbesh/goanna:latest
+    environment:
+      GOANNA_WEB_HOST: 0.0.0.0
+      GOANNA_WEB_PORT: '9044'
+      GOANNA_WEB_INTERNAL_PORT: '9045'
+      GOANNA_API_ADDR: ':8080'
+      GOANNA_API_DSN: file:/app/data/goanna.db?_fk=1
+      GOANNA_MAX_RESPONSE_BODY_BYTES: '25165824'
+      GOANNA_API_INTERNAL_URL: http://127.0.0.1:8080
+    ports:
+      - '9044:9044'
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+```
+
+### Custom Ports
+
+```yaml
+services:
+  goanna:
+    image: ghcr.io/simbesh/goanna:latest
+    environment:
+      GOANNA_WEB_PORT: '3000'
+      GOANNA_API_ADDR: ':3001'
+      GOANNA_API_INTERNAL_URL: http://127.0.0.1:3001
+      GOANNA_API_DSN: file:/app/data/goanna.db?_fk=1
+    ports:
+      - '3000:3000'
+      - '3001:3001'
+    volumes:
+      - ./data:/app/data
+```
+
+### Increased Response Limit
+
+```yaml
+services:
+  goanna:
+    image: ghcr.io/simbesh/goanna:latest
+    environment:
+      GOANNA_WEB_HOST: 0.0.0.0
+      GOANNA_WEB_PORT: '9044'
+      GOANNA_API_ADDR: ':8080'
+      GOANNA_API_DSN: file:/app/data/goanna.db?_fk=1
+      GOANNA_MAX_RESPONSE_BODY_BYTES: '67108864'  # 64 MB
+    ports:
+      - '9044:9044'
+    volumes:
+      - ./data:/app/data
+```
+
+## Environment Variable Priority
+
+When the same variable is defined in multiple places, the priority is:
+
+1. Command-line flags (docker run -e)
+2. Environment file (.env with docker compose)
+3. docker-compose.yml environment section
+4. Dockerfile ENV directives
+5. Default values in application code
+
+## Validation and Error Handling
+
+### GOANNA_MAX_RESPONSE_BODY_BYTES
+
+- Must be a positive integer
+- Non-numeric values fall back to default (25165824)
+- Negative values fall back to default
+- Zero values fall back to default
+
+### Port Variables
+
+- Must be valid port numbers (1-65535)
+- Invalid formats may cause startup failures
+- Conflicts with system ports (< 1024) require elevated privileges
+
+### Database DSN
+
+- Must be a valid SQLite DSN format
+- Parent directory must exist and be writable
+- Invalid DSN causes startup failure with error message
+
+## Next Steps
+
+- [Docker Deployment](/deployment/docker) - Learn about Docker deployment
+- [Docker Compose Deployment](/deployment/docker-compose) - Use Docker Compose for easier management

@@ -1,0 +1,121 @@
+---
+title: 'List Monitor Checks'
+api: 'GET /v1/monitors/{monitorId}/checks'
+---
+
+Retrieve the recent check history for a specific monitor.
+
+## Path Parameters
+
+<ParamField path="monitorId" type="integer" required>
+  The unique identifier of the monitor
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="limit" type="integer" default="20">
+  Maximum number of checks to return (min: 1, max: 500)
+</ParamField>
+
+## Response
+
+<ResponseField name="root" type="array">
+  Array of monitor check objects
+  
+  <Expandable title="MonitorCheck object">
+    <ResponseField name="id" type="integer" required>
+      Unique identifier for the check
+    </ResponseField>
+    
+    <ResponseField name="status" type="string" required>
+      Check status: `ok`, `error`, `retrying`, `pending`, or `unknown`
+    </ResponseField>
+    
+    <ResponseField name="statusCode" type="integer">
+      HTTP status code from the check (if applicable)
+    </ResponseField>
+    
+    <ResponseField name="responseTimeMs" type="integer">
+      Response time in milliseconds
+    </ResponseField>
+    
+    <ResponseField name="errorMessage" type="string">
+      Error message if the check failed
+    </ResponseField>
+    
+    <ResponseField name="selectionType" type="string">
+      Type of the selected value from the response
+    </ResponseField>
+    
+    <ResponseField name="selectionValue" type="string">
+      The actual value selected from the response
+    </ResponseField>
+    
+    <ResponseField name="diffChanged" type="boolean" required>
+      Whether the response changed from the previous check
+    </ResponseField>
+    
+    <ResponseField name="diffKind" type="string">
+      Type of difference detected
+    </ResponseField>
+    
+    <ResponseField name="diffSummary" type="string">
+      Summary of the differences
+    </ResponseField>
+    
+    <ResponseField name="diffDetails" type="string">
+      Detailed information about the differences
+    </ResponseField>
+    
+    <ResponseField name="checkedAt" type="string" required>
+      ISO 8601 timestamp when the check was performed
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET http://localhost:8080/v1/monitors/123/checks?limit=50
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+[
+  {
+    "id": 1001,
+    "status": "ok",
+    "statusCode": 200,
+    "responseTimeMs": 145,
+    "errorMessage": null,
+    "selectionType": "string",
+    "selectionValue": "healthy",
+    "diffChanged": false,
+    "diffKind": null,
+    "diffSummary": null,
+    "diffDetails": null,
+    "checkedAt": "2026-03-02T10:30:00Z"
+  },
+  {
+    "id": 1000,
+    "status": "error",
+    "statusCode": 500,
+    "responseTimeMs": 2340,
+    "errorMessage": "Internal Server Error",
+    "selectionType": null,
+    "selectionValue": null,
+    "diffChanged": false,
+    "diffKind": null,
+    "diffSummary": null,
+    "diffDetails": null,
+    "checkedAt": "2026-03-02T10:25:00Z"
+  }
+]
+```
+
+```json 404 Response
+{
+  "error": "Monitor not found"
+}
+```
+</ResponseExample>

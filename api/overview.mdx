@@ -1,0 +1,90 @@
+---
+title: API Overview
+description: Introduction to the Goanna Monitoring API
+---
+
+# API Overview
+
+The Goanna Monitoring API provides programmatic access to configure and manage endpoint monitoring, health checks, and notification settings.
+
+## Base URL
+
+```
+http://localhost:8080
+```
+
+<Note>
+  By default, Goanna runs on port 8080. You can configure this when starting the server.
+</Note>
+
+## API Versioning
+
+The Goanna API uses URL-based versioning. All primary endpoints are prefixed with `/v1`:
+
+```
+/v1/monitors
+/v1/settings/notifications/telegram
+/v1/settings/runtime
+```
+
+The `/healthz` endpoint exists outside the versioned API for infrastructure health checks.
+
+## Request and Response Format
+
+All API requests and responses use JSON format:
+
+- **Content-Type**: `application/json`
+- **Request Body**: JSON for POST/PUT operations
+- **Response Body**: JSON data structures
+
+### Standard Response Codes
+
+| Status Code | Description |
+|------------|-------------|
+| 200 | Successful GET or operation completed |
+| 201 | Resource created successfully |
+| 204 | Resource deleted (no content) |
+| 400 | Invalid request body or parameters |
+| 404 | Resource not found |
+| 502 | External service failure (e.g., Telegram) |
+
+## Available Endpoints
+
+### Health Check
+
+- **GET** `/healthz` - Check API health status
+
+### Monitor Management
+
+- **GET** `/v1/monitors` - List all configured monitors
+- **POST** `/v1/monitors` - Create a new monitor
+- **GET** `/v1/monitors/{monitorId}/checks` - List recent checks for a monitor
+- **PUT** `/v1/monitors/{monitorId}` - Update an existing monitor
+- **DELETE** `/v1/monitors/{monitorId}` - Delete a monitor
+- **POST** `/v1/monitors/{monitorId}/trigger` - Trigger a monitor to run immediately
+
+### Monitor Testing & Preview
+
+- **POST** `/v1/monitors/test` - Test a monitor URL via the backend (proxy request)
+- **POST** `/v1/monitors/selector-preview` - Preview a GJSON selector against JSON data
+
+### Notification Settings
+
+- **GET** `/v1/settings/notifications/telegram` - Get Telegram notification settings
+- **PUT** `/v1/settings/notifications/telegram` - Create or update Telegram settings
+- **POST** `/v1/settings/notifications/telegram/test` - Send a test Telegram notification
+
+### Runtime Settings
+
+- **GET** `/v1/settings/runtime` - Get global runtime settings
+- **PUT** `/v1/settings/runtime` - Update global runtime settings
+
+<Info>
+  For detailed information about request/response schemas and parameters, refer to the individual endpoint documentation or view the [OpenAPI specification](https://github.com/yourusername/goanna/blob/main/openapi/openapi.yaml).
+</Info>
+
+## Next Steps
+
+- Review [Authentication](/api/authentication) to understand security considerations
+- Explore individual endpoint documentation for detailed usage
+- Check out the [Quickstart Guide](/quickstart) to get started with Goanna

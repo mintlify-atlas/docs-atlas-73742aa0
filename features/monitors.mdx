@@ -1,0 +1,227 @@
+---
+title: Monitors
+description: Configure and manage endpoint monitors to track the health and availability of your APIs and web services
+---
+
+## What are Monitors?
+
+Monitors are the core component of Goanna. Each monitor represents a configured HTTP endpoint that Goanna periodically checks according to a schedule. Monitors track the availability, response time, and content of your endpoints, providing real-time status updates and historical data.
+
+## Monitor Configuration
+
+When creating or updating a monitor, you can configure the following options:
+
+### Basic Settings
+
+<ParamField path="url" type="string" required>
+  The HTTP endpoint to monitor (must be a valid URI)
+</ParamField>
+
+<ParamField path="method" type="string" default="GET">
+  HTTP method to use (GET, POST, PUT, DELETE, etc.)
+</ParamField>
+
+<ParamField path="label" type="string">
+  Optional human-readable label for the monitor
+</ParamField>
+
+<ParamField path="iconUrl" type="string">
+  Optional icon URL to display in the UI
+</ParamField>
+
+### Request Configuration
+
+<ParamField path="headers" type="object">
+  Custom HTTP headers to include in the request
+  
+  ```json
+  {
+    "Content-Type": "application/json",
+    "X-API-Key": "your-api-key"
+  }
+  ```
+</ParamField>
+
+<ParamField path="body" type="string">
+  Request body for POST/PUT requests (raw string)
+</ParamField>
+
+<ParamField path="auth" type="object">
+  Authentication configuration (key-value pairs)
+</ParamField>
+
+### Response Validation
+
+<ParamField path="expectedType" type="string" default="json">
+  Expected response content type
+  
+  <Expandable title="Available types">
+    - `json` - JSON response
+    - `html` - HTML response
+    - `text` - Plain text response
+  </Expandable>
+</ParamField>
+
+<ParamField path="expectedResponse" type="string">
+  Expected response value to validate against
+</ParamField>
+
+<ParamField path="selector" type="string">
+  GJSON selector path to extract a specific value from JSON responses
+  
+  <Note>
+    Selectors use [GJSON syntax](https://github.com/tidwall/gjson) to navigate JSON structures. For example: `data.status` or `users.#.name`
+  </Note>
+</ParamField>
+
+### Scheduling
+
+<ParamField path="cron" type="string" required>
+  Cron expression defining the check schedule
+  
+  ```text
+  */5 * * * *  # Every 5 minutes
+  0 * * * *    # Every hour
+  0 0 * * *    # Daily at midnight
+  ```
+  
+  <Tip>
+    Goanna includes a built-in cron expression builder in the UI to help you create schedules without memorizing cron syntax.
+  </Tip>
+</ParamField>
+
+<ParamField path="enabled" type="boolean" default={true}>
+  Whether the monitor is enabled and should run on schedule
+</ParamField>
+
+### Notifications
+
+<ParamField path="notificationChannels" type="array">
+  List of notification channels to use when the monitor status changes
+  
+  Currently supported: `telegram`
+</ParamField>
+
+## Monitor States
+
+Each monitor can be in one of five states:
+
+<ResponseField name="pending" type="string">
+  Monitor has been created but not yet checked
+</ResponseField>
+
+<ResponseField name="ok" type="string">
+  Monitor's last check was successful
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  Monitor's last check failed
+</ResponseField>
+
+<ResponseField name="retrying" type="string">
+  Monitor is temporarily failing but hasn't reached the failure threshold
+</ResponseField>
+
+<ResponseField name="disabled" type="string">
+  Monitor is disabled and not running checks
+</ResponseField>
+
+## Real-Time Status Tracking
+
+Goanna tracks comprehensive status information for each monitor:
+
+- **Check count** - Total number of checks performed
+- **Next run time** - When the next scheduled check will execute
+- **Last check time** - When the most recent check was performed
+- **Last success time** - When the monitor last succeeded
+- **Last error time** - When the monitor last failed
+- **Last status code** - HTTP status code from the most recent check
+- **Last duration** - Response time in milliseconds
+- **Last error message** - Error details if the check failed
+
+## Triggering Monitors
+
+Monitors run automatically according to their cron schedule, but you can also trigger them manually:
+
+<CodeGroup>
+```bash curl
+curl -X POST http://localhost:8080/v1/monitors/{monitorId}/trigger
+```
+
+```typescript TypeScript
+await client.triggerMonitor({ monitorId: 123 })
+```
+</CodeGroup>
+
+When creating a monitor, you can also trigger an immediate check:
+
+```json
+{
+  "url": "https://api.example.com/health",
+  "cron": "*/5 * * * *",
+  "triggerOnCreate": true
+}
+```
+
+## Example Monitor Configuration
+
+<CodeGroup>
+```json Simple GET Monitor
+{
+  "label": "API Health Check",
+  "method": "GET",
+  "url": "https://api.example.com/health",
+  "expectedType": "json",
+  "expectedResponse": "ok",
+  "cron": "*/5 * * * *",
+  "notificationChannels": ["telegram"]
+}
+```
+
+```json JSON Selector Monitor
+{
+  "label": "User Count Monitor",
+  "method": "GET",
+  "url": "https://api.example.com/stats",
+  "expectedType": "json",
+  "selector": "data.activeUsers",
+  "cron": "0 * * * *",
+  "notificationChannels": ["telegram"]
+}
+```
+
+```json Authenticated POST Monitor
+{
+  "label": "Webhook Monitor",
+  "method": "POST",
+  "url": "https://api.example.com/webhook",
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer token123"
+  },
+  "body": "{\"ping\":\"test\"}",
+  "expectedType": "json",
+  "cron": "*/15 * * * *"
+}
+```
+</CodeGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Check History" icon="clock-rotate-left" href="/features/checks">
+    View detailed check results and history
+  </Card>
+  
+  <Card title="Notifications" icon="bell" href="/features/notifications">
+    Set up alerts for monitor status changes
+  </Card>
+  
+  <Card title="Scheduling" icon="calendar" href="/features/scheduling">
+    Learn more about cron-based scheduling
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/monitors/create">
+    Explore the full API documentation
+  </Card>
+</CardGroup>

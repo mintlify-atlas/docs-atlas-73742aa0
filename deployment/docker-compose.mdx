@@ -1,0 +1,409 @@
+---
+title: Docker Compose Deployment
+description: Deploy Goanna using Docker Compose for simplified container management
+---
+
+Docker Compose provides a declarative way to configure and run Goanna. This guide shows how to set up Goanna using docker-compose.yml.
+
+## Quick Start
+
+<Steps>
+
+<Step title="Create docker-compose.yml">
+
+Create a `docker-compose.yml` file in your project directory:
+
+```yaml
+services:
+  goanna:
+    image: ghcr.io/simbesh/goanna:latest
+    environment:
+      GOANNA_WEB_HOST: 0.0.0.0
+      GOANNA_WEB_PORT: '9044'
+      GOANNA_WEB_INTERNAL_PORT: '9045'
+      GOANNA_API_ADDR: ':8080'
+      GOANNA_API_DSN: file:/app/data/goanna.db?_fk=1
+      GOANNA_MAX_RESPONSE_BODY_BYTES: '25165824'
+    ports:
+      - '9044:9044'
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+```
+
+</Step>
+
+<Step title="Start the service">
+
+```bash
+docker compose up -d
+```
+
+</Step>
+
+<Step title="Access Goanna">
+
+Open your browser to:
+
+```
+http://localhost:9044
+```
+
+</Step>
+
+</Steps>
+
+## Complete Configuration Example
+
+Here's a full docker-compose.yml with all available options:
+
+```yaml
+services:
+  goanna:
+    image: ghcr.io/simbesh/goanna:latest
+    # Optional: build locally instead of pulling
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /
+    environment:
+      GOANNA_WEB_HOST: 0.0.0.0
+      GOANNA_WEB_PORT: '9044'
+      GOANNA_WEB_INTERNAL_PORT: '9045'
+      GOANNA_API_ADDR: ':8080'
+      GOANNA_API_DSN: file:/app/data/goanna.db?_fk=1
+      GOANNA_MAX_RESPONSE_BODY_BYTES: '25165824'
+    ports:
+      - '9044:9044'
+      # Optional: expose API publicly if needed later
+      # - '8080:8080'
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+```
+
+## Service Configuration
+
+### Image Options
+
+You can either pull a pre-built image or build locally:
+
+<CodeGroup>
+
+```yaml Pre-built Image
+services:
+  goanna:
+    image: ghcr.io/simbesh/goanna:latest
+```
+
+```yaml Local Build
+services:
+  goanna:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /
+```
+
+```yaml Both (with override)
+services:
+  goanna:
+    image: ghcr.io/simbesh/goanna:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /
+```
+
+</CodeGroup>
+
+<Note>
+When both `image` and `build` are specified, Docker Compose will build the image and tag it with the specified image name.
+</Note>
+
+### Environment Variables
+
+All environment variables should be quoted strings in docker-compose.yml:
+
+```yaml
+environment:
+  GOANNA_WEB_HOST: 0.0.0.0
+  GOANNA_WEB_PORT: '9044'              # Quote numeric values
+  GOANNA_WEB_INTERNAL_PORT: '9045'
+  GOANNA_API_ADDR: ':8080'
+  GOANNA_API_DSN: file:/app/data/goanna.db?_fk=1
+  GOANNA_MAX_RESPONSE_BODY_BYTES: '25165824'
+```
+
+See the [Configuration Reference](/deployment/configuration) for detailed descriptions of each variable.
+
+### Port Mapping
+
+Goanna exposes two ports:
+
+```yaml
+ports:
+  - '9044:9044'  # Web frontend + API gateway
+  # - '8080:8080'  # Optional: Direct API access
+```
+
+**Web Port (9044):**
+- Serves the web UI
+- Proxies API requests to `/v1/*` and `/healthz`
+- Should always be exposed
+
+**API Port (8080):**
+- Direct access to the API backend
+- Typically kept internal
+- Uncomment if you need direct API access from outside the container
+
+### Custom Port Binding
+
+Bind to a different host port:
+
+```yaml
+ports:
+  - '3000:9044'  # Access via http://localhost:3000
+```
+
+## Volume Management
+
+Goanna stores its SQLite database in a persistent volume.
+
+### Local Directory Mount
+
+Mount a local directory (default approach):
+
+```yaml
+volumes:
+  - ./data:/app/data
+```
+
+This creates a `data/` directory next to your docker-compose.yml file.
+
+### Named Volume
+
+Use a Docker named volume for better portability:
+
+```yaml
+services:
+  goanna:
+    volumes:
+      - goanna-data:/app/data
+
+volumes:
+  goanna-data:
+```
+
+### Absolute Path
+
+Mount from an absolute path on the host:
+
+```yaml
+volumes:
+  - /opt/goanna/data:/app/data
+```
+
+### Volume Permissions
+
+The container runs as the default user. Ensure the mounted directory has appropriate permissions:
+
+```bash
+mkdir -p ./data
+chmod 755 ./data
+```
+
+## Restart Policy
+
+The `restart: unless-stopped` policy ensures Goanna automatically restarts:
+
+```yaml
+restart: unless-stopped
+```
+
+**Restart Policy Options:**
+
+| Policy | Behavior |
+|--------|----------|
+| `no` | Never restart automatically |
+| `always` | Always restart, even after manual stop |
+| `on-failure` | Restart only on error exit |
+| `unless-stopped` | Restart unless explicitly stopped |
+
+## Common Operations
+
+<CodeGroup>
+
+```bash Start Services
+docker compose up -d
+```
+
+```bash Stop Services
+docker compose stop
+```
+
+```bash Restart Services
+docker compose restart
+```
+
+```bash View Logs
+docker compose logs
+
+# Follow logs in real-time
+docker compose logs -f
+
+# Logs for specific service
+docker compose logs goanna
+```
+
+```bash Stop and Remove
+docker compose down
+
+# Also remove volumes (WARNING: deletes data)
+docker compose down -v
+```
+
+```bash Rebuild Image
+docker compose build
+
+# Rebuild and restart
+docker compose up -d --build
+```
+
+```bash Pull Latest Image
+docker compose pull
+
+# Pull and restart
+docker compose pull && docker compose up -d
+```
+
+</CodeGroup>
+
+## Advanced Configurations
+
+### Behind a Reverse Proxy
+
+If running behind Nginx or Traefik, you can keep the web port internal:
+
+```yaml
+services:
+  goanna:
+    image: ghcr.io/simbesh/goanna:latest
+    expose:
+      - 9044  # Internal only, not published to host
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true
+```
+
+### Custom Network
+
+Isolate Goanna in a custom network:
+
+```yaml
+services:
+  goanna:
+    image: ghcr.io/simbesh/goanna:latest
+    ports:
+      - '9044:9044'
+    volumes:
+      - ./data:/app/data
+    networks:
+      - goanna-net
+
+networks:
+  goanna-net:
+    driver: bridge
+```
+
+### Environment File
+
+Store environment variables in a separate file:
+
+<CodeGroup>
+
+```yaml docker-compose.yml
+services:
+  goanna:
+    image: ghcr.io/simbesh/goanna:latest
+    env_file:
+      - .env
+    ports:
+      - '9044:9044'
+    volumes:
+      - ./data:/app/data
+```
+
+```bash .env
+GOANNA_WEB_HOST=0.0.0.0
+GOANNA_WEB_PORT=9044
+GOANNA_WEB_INTERNAL_PORT=9045
+GOANNA_API_ADDR=:8080
+GOANNA_API_DSN=file:/app/data/goanna.db?_fk=1
+GOANNA_MAX_RESPONSE_BODY_BYTES=25165824
+```
+
+</CodeGroup>
+
+### Resource Limits
+
+Limit CPU and memory usage:
+
+```yaml
+services:
+  goanna:
+    image: ghcr.io/simbesh/goanna:latest
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+```
+
+## Troubleshooting
+
+### Check Container Status
+
+```bash
+docker compose ps
+```
+
+### View Logs
+
+```bash
+docker compose logs -f goanna
+```
+
+### Verify Environment Variables
+
+```bash
+docker compose exec goanna env | grep GOANNA_
+```
+
+### Check Volume Mounts
+
+```bash
+docker compose exec goanna ls -la /app/data
+```
+
+### Database Connection Issues
+
+If the database file can't be created, check volume permissions:
+
+```bash
+ls -la ./data
+```
+
+## Next Steps
+
+- [Configuration Reference](/deployment/configuration) - Detailed environment variable documentation
+- [Docker Deployment](/deployment/docker) - Using docker run directly

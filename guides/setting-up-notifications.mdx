@@ -1,0 +1,379 @@
+---
+title: Setting Up Notifications
+description: Configure Telegram notifications to receive alerts when monitors fail
+icon: bell
+---
+
+Goanna can send notifications to Telegram when monitors fail, helping you stay informed about issues with your endpoints.
+
+## Prerequisites
+
+Before setting up notifications, you'll need:
+
+1. A Telegram account
+2. The Telegram app (mobile or desktop)
+3. 5-10 minutes to create and configure a bot
+
+## Step 1: Create a Telegram Bot
+
+Telegram bots are created through BotFather, Telegram's official bot for managing bots.
+
+### Creating Your Bot
+
+1. Open Telegram and search for `@BotFather`
+2. Start a chat and send the command: `/newbot`
+3. Follow the prompts:
+   - Choose a display name (e.g., "Goanna Monitor")
+   - Choose a unique username ending in "bot" (e.g., "my_goanna_monitor_bot")
+4. BotFather will respond with your bot token
+
+<Warning>
+**Keep your bot token secure!** Anyone with the token can send messages as your bot.
+</Warning>
+
+### Bot Token Format
+
+Your bot token will look like this:
+
+```
+1234567890:ABCdefGHIjklMNOpqrsTUVwxyz-1234567890
+```
+
+<Note>
+Copy this token - you'll need it in Step 3
+</Note>
+
+## Step 2: Get Your Chat ID
+
+The chat ID identifies where the bot should send messages. You can send to:
+
+- A direct message with yourself
+- A group chat
+- A channel
+
+### Option A: Personal Direct Messages
+
+1. Search for your bot by username in Telegram
+2. Start a chat with your bot
+3. Send any message (e.g., "Hello")
+4. Visit this URL in your browser (replace `YOUR_BOT_TOKEN` with your actual token):
+
+```
+https://api.telegram.org/botYOUR_BOT_TOKEN/getUpdates
+```
+
+5. Look for the `chat` object in the JSON response:
+
+```json
+{
+  "ok": true,
+  "result": [
+    {
+      "update_id": 123456789,
+      "message": {
+        "message_id": 1,
+        "from": {
+          "id": 987654321,
+          "is_bot": false,
+          "first_name": "Your Name"
+        },
+        "chat": {
+          "id": 987654321,
+          "first_name": "Your Name",
+          "type": "private"
+        },
+        "date": 1234567890,
+        "text": "Hello"
+      }
+    }
+  ]
+}
+```
+
+6. Copy the `chat.id` value (e.g., `987654321`)
+
+### Option B: Group Chat
+
+1. Create a new group in Telegram
+2. Add your bot to the group:
+   - Open group settings
+   - Click "Add members"
+   - Search for your bot and add it
+3. Send a message in the group
+4. Visit the getUpdates URL (same as above)
+5. Look for a chat with `"type": "group"` or `"type": "supergroup"`
+6. Copy the `chat.id` (will be negative, e.g., `-1001234567890`)
+
+<Tip>
+Group chat IDs are always negative numbers
+</Tip>
+
+### Option C: Using a Bot Helper
+
+Alternatively, use a helper bot:
+
+1. Search for `@userinfobot` in Telegram
+2. Start a chat - it will display your user ID
+3. For group chats, add `@userinfobot` to the group and it will display the group ID
+
+## Step 3: Configure Goanna
+
+Now that you have your bot token and chat ID, configure them in Goanna:
+
+### Via Web UI
+
+1. Navigate to **Settings** in Goanna
+2. Find the **Notifications** section
+3. Click on **Telegram**
+4. Enter your configuration:
+
+<ParamField path="enabled" type="boolean" default="true">
+  Enable or disable Telegram notifications globally
+</ParamField>
+
+<ParamField path="botToken" type="string" required>
+  Your Telegram bot token from BotFather
+</ParamField>
+
+<ParamField path="chatId" type="string" required>
+  The chat ID where notifications should be sent
+</ParamField>
+
+5. Click **Save**
+
+### Via API
+
+You can also configure Telegram settings via the API:
+
+```bash
+curl -X PUT http://localhost:8080/v1/settings/notifications/telegram \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "botToken": "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz-1234567890",
+    "chatId": "987654321"
+  }'
+```
+
+## Step 4: Test Your Configuration
+
+Before relying on notifications, test that they work:
+
+### Test via Web UI
+
+1. In the Telegram settings page, click **Send Test Message**
+2. Check your Telegram chat for a test notification
+3. If successful, you'll see a confirmation
+
+<Check>
+Received the test message? Your notifications are configured correctly!
+</Check>
+
+### Test via API
+
+```bash
+curl -X POST http://localhost:8080/v1/settings/notifications/telegram/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "botToken": "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz-1234567890",
+    "chatId": "987654321",
+    "message": "Test notification from Goanna"
+  }'
+```
+
+### Troubleshooting Test Failures
+
+<AccordionGroup>
+  <Accordion title="Bot token is invalid">
+    - Verify you copied the complete token from BotFather
+    - Ensure no extra spaces or characters
+    - Try creating a new bot if the token is compromised
+  </Accordion>
+  
+  <Accordion title="Chat not found">
+    - Make sure you've sent at least one message to the bot
+    - For groups, verify the bot is still a member
+    - Double-check the chat ID (including the negative sign for groups)
+  </Accordion>
+  
+  <Accordion title="Forbidden: bot was blocked by the user">
+    - Unblock the bot in Telegram
+    - Start a new conversation with the bot
+    - Send a message to reactivate
+  </Accordion>
+  
+  <Accordion title="Network or connection errors">
+    - Verify Goanna can reach api.telegram.org
+    - Check firewall rules
+    - Ensure no proxy is blocking the connection
+  </Accordion>
+</AccordionGroup>
+
+## Step 5: Enable Notifications on Monitors
+
+Once Telegram is configured, enable it for specific monitors:
+
+1. Edit an existing monitor or create a new one
+2. Find the **Notification Channels** setting
+3. Check the **Telegram** option
+4. Save the monitor
+
+<Tip>
+You can enable notifications for multiple monitors. Each will send alerts to the same chat.
+</Tip>
+
+### Example Monitor with Notifications
+
+```json
+{
+  "label": "Production API",
+  "url": "https://api.example.com/health",
+  "method": "GET",
+  "expectedType": "json",
+  "cron": "*/5 * * * *",
+  "notificationChannels": ["telegram"],
+  "enabled": true
+}
+```
+
+## Understanding Notification Behavior
+
+### When Notifications Are Sent
+
+Goanna sends notifications in these scenarios:
+
+- **First Failure**: When a monitor changes from `ok` to `error`
+- **Recovery**: When a monitor changes from `error` back to `ok`
+- **Continued Failures**: Periodic reminders if a monitor stays in `error` state
+
+<Note>
+Goanna won't spam you - it intelligently manages notification frequency to avoid alert fatigue
+</Note>
+
+### Notification Content
+
+Notifications include:
+
+- Monitor name/label
+- Target URL
+- Error message or status
+- Timestamp
+- Link to view details (if applicable)
+
+**Example failure notification:**
+
+```
+🔴 Monitor Failed: Production API
+
+URL: https://api.example.com/health
+Error: Expected status "healthy" but got "degraded"
+Time: 2026-03-02 14:30:00 UTC
+
+The monitor has been failing for 5 minutes.
+```
+
+**Example recovery notification:**
+
+```
+🟢 Monitor Recovered: Production API
+
+URL: https://api.example.com/health
+Status: Back to healthy
+Time: 2026-03-02 14:35:00 UTC
+
+Downtime: 5 minutes
+```
+
+### Notification Issues
+
+If a monitor has notification issues, you'll see a warning in the dashboard. Common causes:
+
+- Bot token was revoked
+- Bot was removed from the group
+- Chat was deleted
+- Telegram API is down
+
+<Warning>
+Monitors continue to run even if notifications fail. Check the Goanna dashboard regularly to ensure you're not missing alerts.
+</Warning>
+
+## Advanced Configuration
+
+### Multiple Notification Targets
+
+To send notifications to different chats:
+
+1. Create multiple bots (or use the same bot)
+2. Configure different Goanna instances
+3. Or use Telegram groups and manage membership
+
+<Note>
+Currently, Goanna supports one Telegram configuration. Multiple channels are on the roadmap.
+</Note>
+
+### Customizing Bot Settings
+
+In BotFather, you can customize your bot:
+
+- `/setname` - Change the bot's display name
+- `/setdescription` - Set a description
+- `/setabouttext` - Set the "About" text
+- `/setuserpic` - Upload a profile picture
+- `/setcommands` - Define bot commands
+
+### Security Best Practices
+
+<Steps>
+  <Step title="Restrict bot access">
+    Don't share your bot token. If exposed, use BotFather's `/revoke` command and update Goanna.
+  </Step>
+  
+  <Step title="Use private chats or groups">
+    Avoid sending notifications to public channels where sensitive information might be exposed.
+  </Step>
+  
+  <Step title="Regular testing">
+    Periodically test notifications to ensure they still work (tokens don't expire, but bots can be deleted).
+  </Step>
+  
+  <Step title="Monitor the monitor">
+    Check Goanna's notification status regularly - it will warn you if sending fails.
+  </Step>
+</Steps>
+
+## Disabling Notifications
+
+### Temporarily Disable
+
+To pause all Telegram notifications:
+
+1. Go to **Settings > Notifications > Telegram**
+2. Toggle **Enabled** to off
+3. Save changes
+
+Monitors will continue running, but won't send alerts.
+
+### Disable for Specific Monitors
+
+To stop notifications for one monitor:
+
+1. Edit the monitor
+2. Uncheck **Telegram** in notification channels
+3. Save
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Monitors" icon="plus-circle" href="/guides/creating-monitors">
+    Learn how to create monitors that use your notification settings
+  </Card>
+  <Card title="Monitoring Strategies" icon="chart-line" href="/guides/monitoring-strategies">
+    Best practices for effective alerting
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/settings/telegram">
+    Full API documentation for Telegram settings
+  </Card>
+  <Card title="Runtime Settings" icon="gear" href="/api/settings/runtime">
+    Configure other Goanna settings
+  </Card>
+</CardGroup>

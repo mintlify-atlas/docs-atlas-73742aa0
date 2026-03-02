@@ -1,0 +1,175 @@
+---
+title: 'List Monitors'
+api: 'GET /v1/monitors'
+---
+
+List all configured monitors in the system.
+
+## Response
+
+Returns an array of monitor objects.
+
+<ResponseField name="monitors" type="array">
+  Array of monitor objects
+  
+  <Expandable title="Monitor Object">
+    <ResponseField name="id" type="integer" required>
+      Unique identifier for the monitor
+    </ResponseField>
+    
+    <ResponseField name="label" type="string">
+      Optional label for the monitor
+    </ResponseField>
+    
+    <ResponseField name="method" type="string" required>
+      HTTP method (e.g., GET, POST)
+    </ResponseField>
+    
+    <ResponseField name="url" type="string" required>
+      Target URL to monitor
+    </ResponseField>
+    
+    <ResponseField name="iconUrl" type="string" required>
+      Icon URL for the monitor
+    </ResponseField>
+    
+    <ResponseField name="body" type="string">
+      Request body for POST/PUT requests
+    </ResponseField>
+    
+    <ResponseField name="headers" type="object">
+      Custom HTTP headers to include in requests
+    </ResponseField>
+    
+    <ResponseField name="auth" type="object">
+      Authentication configuration
+    </ResponseField>
+    
+    <ResponseField name="notificationChannels" type="array">
+      List of notification channels (e.g., telegram)
+    </ResponseField>
+    
+    <ResponseField name="notificationIssues" type="array" required>
+      Array of notification issues
+      
+      <Expandable title="Notification Issue">
+        <ResponseField name="channel" type="string" required>
+          Notification channel name
+        </ResponseField>
+        
+        <ResponseField name="code" type="string" required>
+          Error code
+        </ResponseField>
+        
+        <ResponseField name="message" type="string" required>
+          Error message
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="selector" type="string">
+      GJSON selector for extracting values from JSON responses
+    </ResponseField>
+    
+    <ResponseField name="expectedType" type="string" required>
+      Expected response type: `json`, `html`, or `text`
+    </ResponseField>
+    
+    <ResponseField name="expectedResponse" type="string">
+      Expected response value for comparison
+    </ResponseField>
+    
+    <ResponseField name="cron" type="string" required>
+      Cron expression for scheduling checks (e.g., "*/5 * * * *")
+    </ResponseField>
+    
+    <ResponseField name="enabled" type="boolean" required>
+      Whether the monitor is enabled
+    </ResponseField>
+    
+    <ResponseField name="status" type="string" required>
+      Current monitor status: `pending`, `ok`, `error`, `retrying`, or `disabled`
+    </ResponseField>
+    
+    <ResponseField name="checkCount" type="integer" required>
+      Total number of checks performed
+    </ResponseField>
+    
+    <ResponseField name="nextRunAt" type="string">
+      Timestamp of next scheduled run (ISO 8601)
+    </ResponseField>
+    
+    <ResponseField name="lastCheckAt" type="string">
+      Timestamp of last check (ISO 8601)
+    </ResponseField>
+    
+    <ResponseField name="lastSuccessAt" type="string">
+      Timestamp of last successful check (ISO 8601)
+    </ResponseField>
+    
+    <ResponseField name="lastErrorAt" type="string">
+      Timestamp of last error (ISO 8601)
+    </ResponseField>
+    
+    <ResponseField name="lastStatusCode" type="integer">
+      HTTP status code from last check
+    </ResponseField>
+    
+    <ResponseField name="lastDurationMs" type="integer">
+      Duration of last check in milliseconds
+    </ResponseField>
+    
+    <ResponseField name="lastErrorMessage" type="string">
+      Error message from last failed check
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string" required>
+      Timestamp when monitor was created (ISO 8601)
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string" required>
+      Timestamp when monitor was last updated (ISO 8601)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET http://localhost:8080/v1/monitors
+```
+
+## Example Response
+
+```json
+[
+  {
+    "id": 1,
+    "label": "API Health Check",
+    "method": "GET",
+    "url": "https://api.example.com/health",
+    "iconUrl": "https://example.com/icon.png",
+    "body": null,
+    "headers": {},
+    "auth": {},
+    "notificationChannels": ["telegram"],
+    "notificationIssues": [],
+    "selector": "status",
+    "expectedType": "json",
+    "expectedResponse": "ok",
+    "cron": "*/5 * * * *",
+    "enabled": true,
+    "status": "ok",
+    "checkCount": 152,
+    "nextRunAt": "2026-03-02T10:30:00Z",
+    "lastCheckAt": "2026-03-02T10:25:00Z",
+    "lastSuccessAt": "2026-03-02T10:25:00Z",
+    "lastErrorAt": null,
+    "lastStatusCode": 200,
+    "lastDurationMs": 145,
+    "lastErrorMessage": null,
+    "createdAt": "2026-02-15T08:00:00Z",
+    "updatedAt": "2026-03-02T10:25:00Z"
+  }
+]
+```

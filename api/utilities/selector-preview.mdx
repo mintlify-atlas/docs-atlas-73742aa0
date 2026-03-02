@@ -1,0 +1,71 @@
+---
+title: 'Selector Preview'
+api: 'POST /v1/monitors/selector-preview'
+---
+
+Preview how a GJSON selector evaluates against a JSON payload. This is useful for testing selectors before creating or updating monitors.
+
+## Request Body
+
+<ParamField body="json" type="string" required>
+  Raw JSON payload to evaluate the selector against
+</ParamField>
+
+<ParamField body="selector" type="string">
+  Optional GJSON selector path to evaluate. If omitted, the entire JSON structure is returned.
+</ParamField>
+
+## Response
+
+<ResponseField name="exists" type="boolean" required>
+  Whether the selector path exists in the JSON
+</ResponseField>
+
+<ResponseField name="type" type="string" required>
+  Type of the selected value: `none`, `null`, `false`, `number`, `string`, `true`, or `json`
+</ResponseField>
+
+<ResponseField name="raw" type="string">
+  Raw selected value as JSON text
+</ResponseField>
+
+<ResponseField name="value" type="string">
+  Normalized value used for monitor expectedResponse comparison
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X POST http://localhost:8080/v1/monitors/selector-preview \
+  -H "Content-Type: application/json" \
+  -d '{
+    "json": "{\"status\":\"ok\",\"data\":{\"count\":42}}",
+    "selector": "data.count"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+{
+  "exists": true,
+  "type": "number",
+  "raw": "42",
+  "value": "42"
+}
+```
+
+```json 200 Response (No match)
+{
+  "exists": false,
+  "type": "none",
+  "raw": null,
+  "value": null
+}
+```
+
+```json 400 Response
+{
+  "error": "Invalid JSON payload"
+}
+```
+</ResponseExample>

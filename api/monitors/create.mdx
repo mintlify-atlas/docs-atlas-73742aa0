@@ -1,0 +1,203 @@
+---
+title: 'Create Monitor'
+api: 'POST /v1/monitors'
+---
+
+Create a new monitor to track an endpoint.
+
+## Request Body
+
+<ParamField body="url" type="string" required>
+  Target URL to monitor
+</ParamField>
+
+<ParamField body="cron" type="string" required>
+  Cron expression for scheduling checks (e.g., "*/5 * * * *" for every 5 minutes)
+</ParamField>
+
+<ParamField body="label" type="string">
+  Optional label for the monitor
+</ParamField>
+
+<ParamField body="method" type="string" default="GET">
+  HTTP method (e.g., GET, POST, PUT, DELETE)
+</ParamField>
+
+<ParamField body="iconUrl" type="string">
+  Icon URL for the monitor
+</ParamField>
+
+<ParamField body="body" type="string">
+  Request body content for POST/PUT requests
+</ParamField>
+
+<ParamField body="headers" type="object">
+  Custom HTTP headers to include in requests (key-value pairs)
+</ParamField>
+
+<ParamField body="auth" type="object">
+  Authentication configuration (key-value pairs)
+</ParamField>
+
+<ParamField body="notificationChannels" type="array">
+  List of notification channels to use. Currently supports: `telegram`
+</ParamField>
+
+<ParamField body="selector" type="string">
+  GJSON selector path for extracting values from JSON responses
+</ParamField>
+
+<ParamField body="expectedType" type="string" default="json">
+  Expected response type: `json`, `html`, or `text`
+</ParamField>
+
+<ParamField body="expectedResponse" type="string">
+  Expected response value to compare against the selector result
+</ParamField>
+
+<ParamField body="enabled" type="boolean" default="true">
+  Whether the monitor should be enabled immediately
+</ParamField>
+
+<ParamField body="triggerOnCreate" type="boolean" default="false">
+  Whether to trigger a check immediately after creation
+</ParamField>
+
+## Response
+
+<ResponseField name="monitor" type="object" required>
+  The created monitor object
+  
+  <Expandable title="Monitor Object">
+    <ResponseField name="id" type="integer" required>
+      Unique identifier for the monitor
+    </ResponseField>
+    
+    <ResponseField name="label" type="string">
+      Optional label for the monitor
+    </ResponseField>
+    
+    <ResponseField name="method" type="string" required>
+      HTTP method
+    </ResponseField>
+    
+    <ResponseField name="url" type="string" required>
+      Target URL
+    </ResponseField>
+    
+    <ResponseField name="iconUrl" type="string" required>
+      Icon URL
+    </ResponseField>
+    
+    <ResponseField name="cron" type="string" required>
+      Cron schedule expression
+    </ResponseField>
+    
+    <ResponseField name="enabled" type="boolean" required>
+      Whether the monitor is enabled
+    </ResponseField>
+    
+    <ResponseField name="status" type="string" required>
+      Current monitor status
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string" required>
+      Creation timestamp (ISO 8601)
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string" required>
+      Last update timestamp (ISO 8601)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="check" type="object">
+  Check result if `triggerOnCreate` was true
+  
+  <Expandable title="Check Object">
+    <ResponseField name="id" type="integer" required>
+      Check identifier
+    </ResponseField>
+    
+    <ResponseField name="status" type="string" required>
+      Check status: `ok`, `error`, `retrying`, `pending`, or `unknown`
+    </ResponseField>
+    
+    <ResponseField name="statusCode" type="integer">
+      HTTP status code
+    </ResponseField>
+    
+    <ResponseField name="responseTimeMs" type="integer">
+      Response time in milliseconds
+    </ResponseField>
+    
+    <ResponseField name="errorMessage" type="string">
+      Error message if check failed
+    </ResponseField>
+    
+    <ResponseField name="checkedAt" type="string" required>
+      Timestamp of check (ISO 8601)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST http://localhost:8080/v1/monitors \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://api.example.com/health",
+    "cron": "*/5 * * * *",
+    "label": "API Health Check",
+    "method": "GET",
+    "expectedType": "json",
+    "selector": "status",
+    "expectedResponse": "ok",
+    "notificationChannels": ["telegram"],
+    "enabled": true,
+    "triggerOnCreate": false
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "monitor": {
+    "id": 1,
+    "label": "API Health Check",
+    "method": "GET",
+    "url": "https://api.example.com/health",
+    "iconUrl": "https://example.com/icon.png",
+    "body": null,
+    "headers": {},
+    "auth": {},
+    "notificationChannels": ["telegram"],
+    "notificationIssues": [],
+    "selector": "status",
+    "expectedType": "json",
+    "expectedResponse": "ok",
+    "cron": "*/5 * * * *",
+    "enabled": true,
+    "status": "pending",
+    "checkCount": 0,
+    "nextRunAt": "2026-03-02T10:30:00Z",
+    "lastCheckAt": null,
+    "lastSuccessAt": null,
+    "lastErrorAt": null,
+    "lastStatusCode": null,
+    "lastDurationMs": null,
+    "lastErrorMessage": null,
+    "createdAt": "2026-03-02T10:25:00Z",
+    "updatedAt": "2026-03-02T10:25:00Z"
+  },
+  "check": null
+}
+```
+
+## Error Responses
+
+<ResponseField name="400">
+  Invalid request body - check that all required fields are provided and valid
+</ResponseField>

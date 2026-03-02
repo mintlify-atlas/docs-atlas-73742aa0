@@ -1,0 +1,110 @@
+---
+title: Authentication
+description: Security and authentication for the Goanna API
+---
+
+# Authentication
+
+## Current Implementation
+
+<Note>
+  The Goanna API currently does not implement authentication or authorization. All endpoints are publicly accessible to any client that can reach the API server.
+</Note>
+
+This design reflects Goanna's intended use case as a **self-hosted, internal monitoring service** running on a trusted network.
+
+## Use Case and Deployment Model
+
+Goanna is designed to be deployed as an internal service within your infrastructure:
+
+- **Self-hosted**: You control where and how Goanna runs
+- **Internal network**: Typically deployed on private networks or behind VPNs
+- **Single tenant**: Each Goanna instance serves a single team or organization
+- **Trusted environment**: Access is controlled at the network level rather than application level
+
+### Typical Deployment Scenarios
+
+1. **Internal Docker container** on a private network
+2. **Local development** environment (localhost)
+3. **Private cloud** instance with firewall rules
+4. **VPN-protected** server accessible only to authorized personnel
+
+## Security Considerations
+
+<Info>
+  While Goanna doesn't implement API authentication, you should still secure your deployment using network-level controls.
+</Info>
+
+### Recommended Security Practices
+
+**Network Isolation**
+- Deploy Goanna on a private network segment
+- Use firewall rules to restrict access to authorized IPs
+- Consider using a VPN for remote access
+- Avoid exposing the API directly to the public internet
+
+**Reverse Proxy Authentication**
+- Place Goanna behind a reverse proxy (nginx, Caddy, Traefik)
+- Implement authentication at the proxy level (Basic Auth, OAuth, etc.)
+- Use TLS/HTTPS for encrypted communication
+- Add rate limiting to prevent abuse
+
+**Container Security**
+- Run Goanna with minimal privileges
+- Use read-only file systems where possible
+- Scan container images for vulnerabilities
+- Keep dependencies updated
+
+**Data Protection**
+- Store sensitive credentials (Telegram bot tokens, auth headers) securely
+- Limit who can access the Goanna web interface and API
+- Regularly back up the SQLite database
+- Rotate notification service credentials periodically
+
+### Example: Basic Auth with nginx
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name goanna.internal.example.com;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        auth_basic "Goanna Monitoring";
+        auth_basic_user_file /etc/nginx/.htpasswd;
+        
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+## Future Authentication Plans
+
+While there are no immediate plans to add built-in authentication to Goanna, the project may consider:
+
+- Optional API key authentication for programmatic access
+- Integration with external auth providers (OAuth, OIDC)
+- Role-based access control for multi-user scenarios
+
+<Info>
+  If your use case requires API authentication, please consider contributing to the project or opening a feature request on [GitHub](https://github.com/yourusername/goanna).
+</Info>
+
+## API Security Headers
+
+Even without authentication, Goanna includes basic security best practices:
+
+- CORS configuration for browser-based access control
+- JSON validation to prevent injection attacks
+- Input sanitization for monitor URLs and configuration
+- Rate limiting considerations for external endpoint checks
+
+## Related Resources
+
+- [API Overview](/api/overview) - Learn about available endpoints
+- [Deployment Guide](/deployment) - Best practices for production deployment
+- [Configuration](/configuration) - Configure runtime settings

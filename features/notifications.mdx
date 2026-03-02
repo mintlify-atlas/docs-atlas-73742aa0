@@ -1,0 +1,279 @@
+---
+title: Notifications
+description: Configure Telegram notifications to receive real-time alerts when your monitors change status
+---
+
+## Overview
+
+Goanna sends notifications when monitors change status, helping you stay informed about the health of your endpoints. Currently, Goanna supports Telegram as a notification channel, with more channels planned for future releases.
+
+## Telegram Notifications
+
+Telegram notifications provide instant alerts when your monitors:
+- Change from `ok` to `error` or `retrying`
+- Recover from `error` or `retrying` back to `ok`
+- Experience repeated failures
+
+### Setting Up Telegram
+
+To configure Telegram notifications, you need:
+
+<Steps>
+  <Step title="Create a Telegram Bot">
+    1. Open Telegram and search for [@BotFather](https://t.me/botfather)
+    2. Send `/newbot` and follow the instructions
+    3. Copy the bot token provided by BotFather
+  </Step>
+  
+  <Step title="Get Your Chat ID">
+    1. Start a chat with your new bot
+    2. Send any message to the bot
+    3. Visit `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+    4. Find the `chat.id` value in the response
+  </Step>
+  
+  <Step title="Configure Goanna">
+    Add your bot token and chat ID to Goanna's notification settings
+  </Step>
+</Steps>
+
+### Configuration
+
+<ParamField path="enabled" type="boolean" default={true}>
+  Whether Telegram notifications are enabled globally
+</ParamField>
+
+<ParamField path="botToken" type="string" required>
+  The Telegram bot token from BotFather
+  
+  <Warning>
+    Keep your bot token secure. Do not share it publicly or commit it to version control.
+  </Warning>
+</ParamField>
+
+<ParamField path="chatId" type="string" required>
+  The Telegram chat ID where notifications will be sent
+  
+  <Note>
+    This can be a user chat ID, group chat ID, or channel ID. For channels, use the format `-100` followed by the channel ID.
+  </Note>
+</ParamField>
+
+### API Configuration
+
+<CodeGroup>
+```bash curl
+curl -X PUT http://localhost:8080/v1/settings/notifications/telegram \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "botToken": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+    "chatId": "123456789"
+  }'
+```
+
+```typescript TypeScript
+await client.upsertTelegramSettings({
+  enabled: true,
+  botToken: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
+  chatId: '123456789'
+})
+```
+</CodeGroup>
+
+### Testing Notifications
+
+Before relying on notifications, test your configuration:
+
+<CodeGroup>
+```bash curl
+curl -X POST http://localhost:8080/v1/settings/notifications/telegram/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "botToken": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+    "chatId": "123456789",
+    "message": "Test notification from Goanna"
+  }'
+```
+
+```typescript TypeScript
+await client.testTelegramSettings({
+  botToken: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
+  chatId: '123456789',
+  message: 'Test notification from Goanna'
+})
+```
+</CodeGroup>
+
+If successful, you'll receive a test message in your configured Telegram chat.
+
+## Notification Triggers
+
+Notifications are triggered automatically when monitors change status:
+
+### Status Change Events
+
+<AccordionGroup>
+  <Accordion title="Monitor Fails" icon="triangle-exclamation">
+    When a monitor changes from `ok` to `error` or `retrying`, Goanna sends an alert with:
+    - Monitor name and URL
+    - Error message
+    - Response time (if available)
+    - HTTP status code (if available)
+    - Timestamp of the failure
+  </Accordion>
+  
+  <Accordion title="Monitor Recovers" icon="circle-check">
+    When a monitor changes from `error` or `retrying` back to `ok`, Goanna sends a recovery notification with:
+    - Monitor name and URL
+    - Recovery timestamp
+    - Current response time
+    - Duration of the outage
+  </Accordion>
+  
+  <Accordion title="Repeated Failures" icon="arrows-rotate">
+    If a monitor continues to fail, Goanna may send periodic reminders (behavior depends on worker configuration)
+  </Accordion>
+</AccordionGroup>
+
+### Per-Monitor Configuration
+
+You can enable or disable notifications for individual monitors:
+
+```json
+{
+  "url": "https://api.example.com/health",
+  "cron": "*/5 * * * *",
+  "notificationChannels": ["telegram"]
+}
+```
+
+<Tip>
+  Omit `notificationChannels` or pass an empty array to disable notifications for a specific monitor while keeping the global Telegram configuration active.
+</Tip>
+
+## Notification Issues
+
+If notifications fail to send, Goanna tracks the issue in the monitor's `notificationIssues` field:
+
+```json
+{
+  "id": 123,
+  "url": "https://api.example.com/health",
+  "status": "error",
+  "notificationIssues": [
+    {
+      "channel": "telegram",
+      "code": "SEND_FAILED",
+      "message": "Failed to send Telegram message: Bot token is invalid"
+    }
+  ]
+}
+```
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Invalid Bot Token">
+    **Error**: `Bot token is invalid`
+    
+    **Solution**: Verify your bot token from BotFather and update the Telegram settings
+  </Accordion>
+  
+  <Accordion title="Chat Not Found">
+    **Error**: `Chat not found`
+    
+    **Solution**: 
+    - Ensure you've started a chat with the bot
+    - Verify the chat ID is correct
+    - For groups/channels, ensure the bot has been added as a member
+  </Accordion>
+  
+  <Accordion title="Bot Blocked">
+    **Error**: `Bot was blocked by the user`
+    
+    **Solution**: Unblock the bot in Telegram and restart the conversation
+  </Accordion>
+  
+  <Accordion title="Network Errors">
+    **Error**: `Failed to connect to Telegram API`
+    
+    **Solution**: 
+    - Check your internet connection
+    - Verify Goanna can reach api.telegram.org
+    - Check for firewall or proxy restrictions
+  </Accordion>
+</AccordionGroup>
+
+## Retrieving Settings
+
+You can retrieve the current Telegram configuration:
+
+<CodeGroup>
+```bash curl
+curl http://localhost:8080/v1/settings/notifications/telegram
+```
+
+```typescript TypeScript
+const settings = await client.getTelegramSettings()
+console.log(settings.enabled, settings.updatedAt)
+```
+</CodeGroup>
+
+<Note>
+  For security, the bot token is included in the response but should be handled carefully. Never expose it in client-side logs or UI.
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Secure Your Token" icon="lock">
+    Store your bot token securely and rotate it periodically. Never commit tokens to version control.
+  </Card>
+  
+  <Card title="Test Configuration" icon="vial">
+    Always test your notification settings before deploying monitors to production.
+  </Card>
+  
+  <Card title="Monitor Selectively" icon="filter">
+    Only enable notifications for critical monitors to avoid alert fatigue.
+  </Card>
+  
+  <Card title="Use Groups" icon="users">
+    Send notifications to a Telegram group for team visibility and collaboration.
+  </Card>
+</CardGroup>
+
+## Future Channels
+
+Goanna is designed to support multiple notification channels. Planned additions include:
+
+- Email notifications
+- Slack integration
+- Discord webhooks
+- PagerDuty integration
+- Custom webhook endpoints
+
+<Info>
+  Want to contribute a new notification channel? Check out the project on GitHub to get started.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Monitors" icon="desktop" href="/features/monitors">
+    Configure monitors to trigger notifications
+  </Card>
+  
+  <Card title="Check Results" icon="clock-rotate-left" href="/features/checks">
+    View detailed check history and status changes
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/settings/telegram">
+    Explore the Telegram settings API
+  </Card>
+  
+  <Card title="Runtime Settings" icon="gear" href="/api/settings/runtime">
+    Configure global Goanna settings
+  </Card>
+</CardGroup>

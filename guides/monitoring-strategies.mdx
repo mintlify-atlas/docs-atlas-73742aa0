@@ -1,0 +1,555 @@
+---
+title: Monitoring Strategies
+description: Best practices for effective endpoint monitoring with Goanna
+icon: chart-line
+---
+
+Effective monitoring is about more than just setting up checks - it requires thoughtful strategy around what to monitor, how often to check, and how to organize your monitors for maintainability.
+
+## Choosing Check Intervals
+
+The check interval determines how quickly you'll detect issues. Balance detection speed against server load and noise.
+
+### Interval Guidelines
+
+<CardGroup cols={2}>
+  <Card title="High Frequency" icon="bolt">
+    **Every 1-5 minutes**
+    
+    Best for:
+    - Critical production APIs
+    - User-facing services
+    - Payment systems
+    - Real-time features
+    
+    Example: `*/5 * * * *`
+  </Card>
+  
+  <Card title="Medium Frequency" icon="clock">
+    **Every 15-30 minutes**
+    
+    Best for:
+    - Internal APIs
+    - Background jobs
+    - Non-critical services
+    - Development environments
+    
+    Example: `*/15 * * * *`
+  </Card>
+  
+  <Card title="Low Frequency" icon="hourglass">
+    **Every 1-6 hours**
+    
+    Best for:
+    - Status pages
+    - Documentation sites
+    - Scheduled reports
+    - Third-party integrations
+    
+    Example: `0 */1 * * *`
+  </Card>
+  
+  <Card title="Daily Checks" icon="calendar">
+    **Once per day**
+    
+    Best for:
+    - SSL certificate expiration
+    - Backup verification
+    - Compliance checks
+    - Low-priority endpoints
+    
+    Example: `0 9 * * *`
+  </Card>
+</CardGroup>
+
+### Factors to Consider
+
+<AccordionGroup>
+  <Accordion title="Business Impact">
+    How quickly do you need to know about failures?
+    
+    - Revenue-generating services: 1-5 minutes
+    - Internal tools: 15-30 minutes
+    - Informational endpoints: 1+ hours
+  </Accordion>
+  
+  <Accordion title="Service Stability">
+    How stable is the endpoint?
+    
+    - Stable services can be checked less frequently
+    - New or unreliable services benefit from frequent checks
+    - Adjust intervals based on historical reliability
+  </Accordion>
+  
+  <Accordion title="Rate Limits">
+    Does the API have rate limits?
+    
+    - Respect third-party API limits
+    - Monitor rate limit headers
+    - Use longer intervals for limited APIs
+  </Accordion>
+  
+  <Accordion title="Cost Considerations">
+    Are you paying per request?
+    
+    - Minimize checks for paid APIs
+    - Balance cost vs detection speed
+    - Consider using health endpoints that don't count toward limits
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+**Avoid over-monitoring:** Checking every minute might seem thorough, but it can:
+- Increase server load
+- Trigger rate limits
+- Create alert fatigue
+- Waste resources on low-priority services
+</Warning>
+
+## Monitor Types and Patterns
+
+### 1. Simple Health Checks
+
+Basic availability monitoring without response validation.
+
+**When to use:**
+- Quick up/down status
+- Services without detailed health endpoints
+- Initial monitoring setup
+
+**Configuration:**
+```json
+{
+  "label": "API Availability",
+  "url": "https://api.example.com/healthz",
+  "method": "GET",
+  "expectedType": "json",
+  "cron": "*/5 * * * *"
+}
+```
+
+<Tip>
+No selector or expected response - just verifies the endpoint returns 200 OK
+</Tip>
+
+### 2. Status Field Validation
+
+Monitor specific status fields in JSON responses.
+
+**When to use:**
+- APIs with structured health responses
+- Multi-service status endpoints
+- Detailed health information
+
+**Configuration:**
+```json
+{
+  "label": "API Health Status",
+  "url": "https://api.example.com/health",
+  "method": "GET",
+  "expectedType": "json",
+  "selector": "status",
+  "expectedResponse": "healthy",
+  "cron": "*/5 * * * *"
+}
+```
+
+### 3. Dependency Monitoring
+
+Check individual service dependencies.
+
+**When to use:**
+- Microservice architectures
+- Services with multiple dependencies
+- Isolating failure sources
+
+**Configuration:**
+```json
+{
+  "label": "Database Connection",
+  "url": "https://api.example.com/health",
+  "method": "GET",
+  "expectedType": "json",
+  "selector": "dependencies.database.status",
+  "expectedResponse": "connected",
+  "cron": "*/5 * * * *"
+}
+```
+
+<Note>
+Create separate monitors for each critical dependency to pinpoint failures quickly
+</Note>
+
+### 4. Functional API Tests
+
+Test actual API functionality, not just health endpoints.
+
+**When to use:**
+- Critical user flows
+- Authentication systems
+- Data retrieval endpoints
+
+**Configuration:**
+```json
+{
+  "label": "User API - Get Profile",
+  "url": "https://api.example.com/v1/users/test-user",
+  "method": "GET",
+  "headers": {
+    "Authorization": "Bearer test_token"
+  },
+  "expectedType": "json",
+  "selector": "user.id",
+  "expectedResponse": "test-user",
+  "cron": "*/10 * * * *"
+}
+```
+
+<Warning>
+Use test accounts and data for functional monitoring - never use production user data
+</Warning>
+
+### 5. Webhook Monitoring
+
+Ensure webhook endpoints are available to receive events.
+
+**When to use:**
+- Webhook receivers
+- Event processing endpoints
+- Integration callbacks
+
+**Configuration:**
+```json
+{
+  "label": "Webhook Receiver",
+  "url": "https://webhooks.example.com/github",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/json",
+    "X-Webhook-Test": "true"
+  },
+  "body": "{\"event\":\"ping\",\"test\":true}",
+  "expectedType": "json",
+  "selector": "status",
+  "expectedResponse": "ok",
+  "cron": "*/15 * * * *"
+}
+```
+
+### 6. Third-Party Status Pages
+
+Monitor status pages of services you depend on.
+
+**When to use:**
+- Cloud provider status
+- SaaS service status
+- Payment processor status
+
+**Configuration:**
+```json
+{
+  "label": "AWS Status",
+  "url": "https://status.aws.amazon.com/data.json",
+  "method": "GET",
+  "expectedType": "json",
+  "selector": "current.0.status",
+  "cron": "0 */1 * * *"
+}
+```
+
+<Tip>
+Monitor third-party services less frequently - they're outside your control and usually very stable
+</Tip>
+
+## Organizing Monitors
+
+### Naming Conventions
+
+Use clear, consistent naming:
+
+**Good:**
+- `Production API - Health Check`
+- `Staging API - User Service`
+- `Database Connection - Primary`
+
+**Bad:**
+- `monitor1`
+- `test`
+- `api check`
+
+### Grouping Strategies
+
+<Tabs>
+  <Tab title="By Environment">
+    Group by deployment environment:
+    
+    - `[PROD] API Health`
+    - `[PROD] Database`
+    - `[STAGING] API Health`
+    - `[DEV] API Health`
+  </Tab>
+  
+  <Tab title="By Service">
+    Group by microservice or component:
+    
+    - `Auth Service - Health`
+    - `Auth Service - Database`
+    - `User Service - Health`
+    - `User Service - Cache`
+  </Tab>
+  
+  <Tab title="By Priority">
+    Group by criticality:
+    
+    - `[CRITICAL] Payment API`
+    - `[HIGH] User API`
+    - `[MEDIUM] Reporting API`
+    - `[LOW] Documentation Site`
+  </Tab>
+</Tabs>
+
+## Managing Check History
+
+Goanna stores check history for analysis and debugging.
+
+### History Retention Settings
+
+Configure how many check results to keep:
+
+<ParamField path="checksHistoryLimit" type="integer" default="100">
+  Number of recent checks to retain per monitor (minimum: 10)
+</ParamField>
+
+**Via API:**
+```bash
+curl -X PUT http://localhost:8080/v1/settings/runtime \
+  -H "Content-Type: application/json" \
+  -d '{
+    "checksHistoryLimit": 200,
+    "timezone": "UTC"
+  }'
+```
+
+### Retention Guidelines
+
+| Check Frequency | Recommended Retention | Covers |
+|----------------|----------------------|--------|
+| Every 5 minutes | 100 checks | ~8 hours |
+| Every 15 minutes | 100 checks | ~25 hours |
+| Every hour | 200 checks | ~8 days |
+| Daily | 365 checks | ~1 year |
+
+<Note>
+Balance retention against database size. Higher limits provide more historical data but use more storage.
+</Note>
+
+## Notification Strategy
+
+### When to Notify
+
+<Steps>
+  <Step title="Critical services only">
+    Enable notifications for monitors that require immediate attention:
+    - User-facing APIs
+    - Payment systems
+    - Authentication services
+  </Step>
+  
+  <Step title="Group related monitors">
+    If multiple monitors check the same service, consider notifying only on the most critical one to reduce noise.
+  </Step>
+  
+  <Step title="Test notification settings">
+    Always test notifications before relying on them in production.
+  </Step>
+</Steps>
+
+### Reducing Alert Fatigue
+
+<AccordionGroup>
+  <Accordion title="Don't notify on every monitor">
+    Only enable notifications for truly critical failures. Not every monitor failure requires immediate attention.
+  </Accordion>
+  
+  <Accordion title="Use appropriate check intervals">
+    Frequent checks on non-critical services generate more false alarms.
+  </Accordion>
+  
+  <Accordion title="Set realistic expectations">
+    Use selectors to validate meaningful status, not transient values that change frequently.
+  </Accordion>
+  
+  <Accordion title="Review and adjust">
+    Regularly review which monitors trigger alerts and adjust thresholds or intervals.
+  </Accordion>
+</AccordionGroup>
+
+## Multi-Environment Strategy
+
+Monitor the same services across environments:
+
+### Production
+- Highest priority
+- Shortest check intervals (1-5 minutes)
+- Notifications enabled
+- Comprehensive validation
+
+### Staging
+- Medium priority
+- Moderate intervals (15-30 minutes)
+- Notifications optional
+- Same validation as production
+
+### Development
+- Lower priority
+- Longer intervals (1+ hours)
+- Notifications disabled
+- Basic health checks
+
+<Tip>
+Maintain similar monitor configurations across environments but adjust intervals and notification settings
+</Tip>
+
+## Monitoring Monitors
+
+Monitor your monitoring system:
+
+<Steps>
+  <Step title="Check notification health">
+    Regularly verify that notification channels are working using test messages.
+  </Step>
+  
+  <Step title="Review check history">
+    Analyze trends in check results to identify intermittent issues.
+  </Step>
+  
+  <Step title="Monitor check execution">
+    Ensure monitors are running on schedule (check `nextRunAt` timestamps).
+  </Step>
+  
+  <Step title="Review disabled monitors">
+    Periodically audit disabled monitors - are they still needed?
+  </Step>
+</Steps>
+
+## Common Pitfalls
+
+<Warning>
+**Avoid these common mistakes:**
+
+1. **Over-monitoring**: Checking too frequently wastes resources
+2. **Under-validating**: Not using selectors means you might miss partial failures
+3. **Ignoring test environments**: Development issues often predict production problems
+4. **Notification overload**: Too many alerts leads to ignoring all alerts
+5. **Static thresholds**: What's normal changes - review and adjust monitors regularly
+6. **Monitoring symptoms, not causes**: Monitor dependencies, not just high-level status
+7. **No documentation**: Other team members should understand what each monitor does
+</Warning>
+
+## Monitoring Maturity Model
+
+### Level 1: Basic Availability
+- Simple health checks
+- No validation beyond HTTP 200
+- Manual review of failures
+
+### Level 2: Structured Validation
+- JSON selector validation
+- Expected response checks
+- Automated notifications
+
+### Level 3: Comprehensive Monitoring
+- Multiple monitors per service
+- Dependency isolation
+- Environment parity
+- Functional API tests
+
+### Level 4: Proactive Monitoring
+- Trend analysis
+- Predictive alerts
+- Performance tracking
+- Business metric correlation
+
+<Note>
+Start at Level 1 and progressively add sophistication as your monitoring needs grow
+</Note>
+
+## Example: Complete Monitoring Setup
+
+Here's a complete monitoring strategy for a typical web application:
+
+```json
+[
+  {
+    "label": "[PROD][CRITICAL] Main API - Health",
+    "url": "https://api.production.com/health",
+    "method": "GET",
+    "expectedType": "json",
+    "selector": "status",
+    "expectedResponse": "healthy",
+    "cron": "*/5 * * * *",
+    "notificationChannels": ["telegram"],
+    "enabled": true
+  },
+  {
+    "label": "[PROD][CRITICAL] Database Connection",
+    "url": "https://api.production.com/health",
+    "method": "GET",
+    "expectedType": "json",
+    "selector": "dependencies.database",
+    "expectedResponse": "connected",
+    "cron": "*/5 * * * *",
+    "notificationChannels": ["telegram"],
+    "enabled": true
+  },
+  {
+    "label": "[PROD][HIGH] Auth API - Token Validation",
+    "url": "https://api.production.com/auth/validate",
+    "method": "POST",
+    "headers": {
+      "Authorization": "Bearer test_token"
+    },
+    "expectedType": "json",
+    "selector": "valid",
+    "expectedResponse": "true",
+    "cron": "*/10 * * * *",
+    "notificationChannels": ["telegram"],
+    "enabled": true
+  },
+  {
+    "label": "[STAGING] Main API - Health",
+    "url": "https://api.staging.com/health",
+    "method": "GET",
+    "expectedType": "json",
+    "selector": "status",
+    "expectedResponse": "healthy",
+    "cron": "*/15 * * * *",
+    "enabled": true
+  },
+  {
+    "label": "[PROD][LOW] Documentation Site",
+    "url": "https://docs.example.com",
+    "method": "GET",
+    "expectedType": "html",
+    "cron": "0 */6 * * *",
+    "enabled": true
+  }
+]
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Monitors" icon="plus-circle" href="/guides/creating-monitors">
+    Apply these strategies to create effective monitors
+  </Card>
+  <Card title="Setting Up Notifications" icon="bell" href="/guides/setting-up-notifications">
+    Configure alerts for critical failures
+  </Card>
+  <Card title="Understanding Selectors" icon="filter" href="/guides/understanding-selectors">
+    Master JSON validation with selectors
+  </Card>
+  <Card title="Runtime Settings" icon="gear" href="/api/settings/runtime">
+    Configure check history and other settings
+  </Card>
+</CardGroup>

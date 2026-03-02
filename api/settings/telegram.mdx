@@ -1,0 +1,116 @@
+---
+title: 'Telegram Settings'
+api: 'GET /v1/settings/notifications/telegram'
+---
+
+Manage Telegram notification channel settings.
+
+## Get Telegram Settings
+
+<api>GET /v1/settings/notifications/telegram</api>
+
+Retrieve the current Telegram notification configuration.
+
+### Response
+
+<ResponseField name="enabled" type="boolean" required>
+  Whether Telegram notifications are enabled
+</ResponseField>
+
+<ResponseField name="botToken" type="string" required>
+  Telegram bot token for sending notifications
+</ResponseField>
+
+<ResponseField name="chatId" type="string" required>
+  Telegram chat ID where notifications will be sent
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of last update
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET http://localhost:8080/v1/settings/notifications/telegram
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+{
+  "enabled": true,
+  "botToken": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+  "chatId": "-1001234567890",
+  "updatedAt": "2026-03-02T10:00:00Z"
+}
+```
+</ResponseExample>
+
+---
+
+## Update Telegram Settings
+
+<api>PUT /v1/settings/notifications/telegram</api>
+
+Create or update Telegram notification channel settings.
+
+### Request Body
+
+<ParamField body="enabled" type="boolean" default="true">
+  Whether to enable Telegram notifications
+</ParamField>
+
+<ParamField body="botToken" type="string" required>
+  Telegram bot token obtained from @BotFather
+</ParamField>
+
+<ParamField body="chatId" type="string" required>
+  Telegram chat ID where notifications should be sent
+</ParamField>
+
+### Response
+
+<ResponseField name="enabled" type="boolean" required>
+  Whether Telegram notifications are enabled
+</ResponseField>
+
+<ResponseField name="botToken" type="string" required>
+  Telegram bot token for sending notifications
+</ResponseField>
+
+<ResponseField name="chatId" type="string" required>
+  Telegram chat ID where notifications will be sent
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of last update
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X PUT http://localhost:8080/v1/settings/notifications/telegram \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "botToken": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+    "chatId": "-1001234567890"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+{
+  "enabled": true,
+  "botToken": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+  "chatId": "-1001234567890",
+  "updatedAt": "2026-03-02T10:30:00Z"
+}
+```
+
+```json 400 Response
+{
+  "error": "Invalid bot token format"
+}
+```
+</ResponseExample>

@@ -1,0 +1,58 @@
+---
+title: 'Test Telegram Settings'
+api: 'POST /v1/settings/notifications/telegram/test'
+---
+
+Send a test notification to verify Telegram configuration.
+
+## Request Body
+
+<ParamField body="botToken" type="string" required>
+  Telegram bot token to test
+</ParamField>
+
+<ParamField body="chatId" type="string" required>
+  Telegram chat ID to send the test message to
+</ParamField>
+
+<ParamField body="message" type="string">
+  Custom message to send (optional). If not provided, a default test message will be sent.
+</ParamField>
+
+## Response
+
+<ResponseField name="ok" type="boolean" required>
+  Whether the test message was successfully sent
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X POST http://localhost:8080/v1/settings/notifications/telegram/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "botToken": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+    "chatId": "-1001234567890",
+    "message": "Test notification from Goanna"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+{
+  "ok": true
+}
+```
+
+```json 400 Response
+{
+  "error": "Missing required field: botToken"
+}
+```
+
+```json 502 Response
+{
+  "error": "Failed to send Telegram message: invalid bot token"
+}
+```
+</ResponseExample>

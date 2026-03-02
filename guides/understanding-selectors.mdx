@@ -1,0 +1,435 @@
+---
+title: Understanding Selectors
+description: Learn how to use gjson selectors to extract and validate specific JSON fields
+icon: filter
+---
+
+Selectors allow you to extract specific values from JSON responses and validate them against expected values. Goanna uses [gjson](https://github.com/tidwall/gjson) syntax for powerful and flexible JSON querying.
+
+## What Are Selectors?
+
+A selector (or "path") is a string that describes how to navigate through a JSON structure to find a specific value.
+
+### Basic Example
+
+Given this JSON response:
+
+```json
+{
+  "status": "healthy",
+  "version": "1.2.3"
+}
+```
+
+The selector `status` extracts the value `"healthy"`.
+
+## Why Use Selectors?
+
+Selectors are useful when:
+
+- You want to validate a specific field in a large JSON response
+- The response structure contains nested data
+- You need to check array elements
+- You want to ignore irrelevant fields that might change
+
+<Tip>
+Without a selector, Goanna validates that the response is valid JSON and the HTTP status is successful. With a selector, you can be more specific about what "success" means.
+</Tip>
+
+## Selector Syntax
+
+### Simple Field Access
+
+Access top-level fields by name:
+
+<CodeGroup>
+
+```json Response
+{
+  "status": "operational",
+  "uptime": 99.99
+}
+```
+
+</CodeGroup>
+
+| Selector | Result | Description |
+|----------|--------|-------------|
+| `status` | `"operational"` | Get the status field |
+| `uptime` | `99.99` | Get the uptime field |
+
+### Nested Field Access
+
+Use dot notation for nested objects:
+
+<CodeGroup>
+
+```json Response
+{
+  "service": {
+    "api": {
+      "status": "healthy",
+      "latency": 45
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+| Selector | Result | Description |
+|----------|--------|-------------|
+| `service.api.status` | `"healthy"` | Navigate through nested objects |
+| `service.api.latency` | `45` | Access nested numeric values |
+
+### Array Access
+
+Access array elements by index (0-based):
+
+<CodeGroup>
+
+```json Response
+{
+  "checks": [
+    {"name": "database", "status": "up"},
+    {"name": "cache", "status": "up"},
+    {"name": "queue", "status": "down"}
+  ]
+}
+```
+
+</CodeGroup>
+
+| Selector | Result | Description |
+|----------|--------|-------------|
+| `checks.0.status` | `"up"` | First element's status |
+| `checks.2.name` | `"queue"` | Third element's name |
+| `checks.#` | `3` | Number of array elements |
+
+### Array Queries
+
+Find elements matching conditions:
+
+<CodeGroup>
+
+```json Response
+{
+  "services": [
+    {"name": "api", "status": "healthy", "cpu": 45},
+    {"name": "worker", "status": "healthy", "cpu": 30},
+    {"name": "db", "status": "degraded", "cpu": 85}
+  ]
+}
+```
+
+</CodeGroup>
+
+| Selector | Result | Description |
+|----------|--------|-------------|
+| `services.#.name` | `["api","worker","db"]` | All service names |
+| `services.#.status` | `["healthy","healthy","degraded"]` | All statuses |
+| `services.#(status=="healthy")#.name` | `["api","worker"]` | Names of healthy services |
+| `services.#(cpu>50)#.name` | `["db"]` | Services with high CPU |
+
+<Note>
+Array queries use `#(condition)` syntax. The `#` at the end collects all matches.
+</Note>
+
+### Common Patterns
+
+#### Check if a field exists
+
+Use a selector without an expected value:
+
+- Selector: `data.userId`
+- Expected: (empty)
+- Result: Passes if the field exists, regardless of value
+
+#### Check for a specific value
+
+- Selector: `status`
+- Expected: `healthy`
+- Result: Passes only if status equals "healthy"
+
+#### Check array length
+
+- Selector: `items.#`
+- Expected: `5`
+- Result: Passes if there are exactly 5 items
+
+#### Check for any error
+
+<CodeGroup>
+
+```json Response
+{
+  "errors": []
+}
+```
+
+</CodeGroup>
+
+- Selector: `errors.#`
+- Expected: `0`
+- Result: Passes if there are no errors
+
+## Using the Selector Preview API
+
+Goanna provides a dedicated API endpoint to test selectors before using them in monitors.
+
+### Preview Request
+
+<ParamField path="json" type="string" required>
+  The raw JSON payload to test against (as a string)
+</ParamField>
+
+<ParamField path="selector" type="string" optional>
+  The gjson selector to evaluate. If empty, returns info about the full JSON.
+</ParamField>
+
+### Preview Response
+
+<ResponseField name="exists" type="boolean">
+  Whether the selector found a value
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  The type of the selected value: `none`, `null`, `false`, `number`, `string`, `true`, `json`
+</ResponseField>
+
+<ResponseField name="raw" type="string" nullable>
+  The raw selected value as JSON text
+</ResponseField>
+
+<ResponseField name="value" type="string" nullable>
+  The normalized value used for comparison with `expectedResponse`
+</ResponseField>
+
+### Example: Testing a Selector
+
+```bash
+curl -X POST http://localhost:8080/v1/monitors/selector-preview \
+  -H "Content-Type: application/json" \
+  -d '{
+    "json": "{\"status\":\"healthy\",\"services\":{\"api\":\"up\",\"db\":\"up\"}}",
+    "selector": "services.api"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "exists": true,
+  "type": "string",
+  "raw": "\"up\"",
+  "value": "up"
+}
+```
+
+<Tip>
+Use the preview API to test complex selectors before adding them to monitors
+</Tip>
+
+## Practical Examples
+
+### Example 1: API Health Check
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-03-02T10:30:00Z",
+  "checks": {
+    "database": "connected",
+    "redis": "connected"
+  }
+}
+```
+
+**Monitor Configuration:**
+- Selector: `status`
+- Expected: `ok`
+
+### Example 2: Multi-Service Status
+
+**Response:**
+```json
+{
+  "services": [
+    {"name": "auth", "healthy": true},
+    {"name": "billing", "healthy": true},
+    {"name": "notifications", "healthy": false}
+  ]
+}
+```
+
+**To check if all services are healthy:**
+- Selector: `services.#(healthy==false)#`
+- Expected: `[]` (empty array)
+
+Or check a specific service:
+- Selector: `services.#(name=="auth")#.healthy`
+- Expected: `[true]`
+
+### Example 3: Version Check
+
+**Response:**
+```json
+{
+  "app": {
+    "version": "2.5.1",
+    "build": "abc123"
+  }
+}
+```
+
+**Monitor Configuration:**
+- Selector: `app.version`
+- Expected: `2.5.1`
+
+This ensures the deployed version matches expectations.
+
+### Example 4: Monitoring Metrics
+
+**Response:**
+```json
+{
+  "metrics": {
+    "activeUsers": 1523,
+    "requestsPerSecond": 45.2,
+    "errorRate": 0.001
+  }
+}
+```
+
+**To monitor (not validate a specific value):**
+- Selector: `metrics.errorRate`
+- Expected: (empty)
+
+Goanna will track changes over time without enforcing a specific value.
+
+### Example 5: Array Length Validation
+
+**Response:**
+```json
+{
+  "queue": {
+    "pending": [
+      {"id": 1, "task": "process_payment"},
+      {"id": 2, "task": "send_email"}
+    ]
+  }
+}
+```
+
+**To alert if queue is too long:**
+- Selector: `queue.pending.#`
+- Expected: Not easily done with exact match
+
+<Note>
+For threshold-based monitoring (greater than, less than), you may need to implement custom logic or use a combination of monitoring tools.
+</Note>
+
+## Advanced gjson Features
+
+gjson supports many advanced features:
+
+### Modifiers
+
+- `@reverse` - Reverse an array
+- `@ugly` - Remove whitespace from JSON
+- `@pretty` - Pretty print JSON
+- `@this` - Current element
+
+### Multiple Selections
+
+Get multiple fields:
+```
+{status,version}
+```
+
+Returns: `{"status":"healthy","version":"1.2.3"}`
+
+### Wildcards
+
+Match any key:
+```
+services.*.status
+```
+
+Matches `services.api.status`, `services.db.status`, etc.
+
+<Warning>
+While gjson supports wildcards and advanced queries, keep selectors simple and specific for the most reliable monitoring.
+</Warning>
+
+## Best Practices
+
+<Steps>
+  <Step title="Start simple">
+    Begin with basic selectors like `status` before moving to complex queries.
+  </Step>
+  
+  <Step title="Test first">
+    Use the selector preview API to test your selectors against real responses.
+  </Step>
+  
+  <Step title="Be specific">
+    Select the most specific field that indicates health - avoid monitoring entire objects.
+  </Step>
+  
+  <Step title="Document your selectors">
+    Use the monitor's label to describe what you're checking (e.g., "API Status - services.api.health").
+  </Step>
+  
+  <Step title="Monitor changes">
+    Even without an expected value, selectors help track changes over time.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Selector returns nothing (exists: false)">
+    - Verify the JSON structure matches your selector path
+    - Check for typos in field names (case-sensitive)
+    - Ensure the response is valid JSON
+    - Use the preview API to inspect the actual response
+  </Accordion>
+  
+  <Accordion title="Value doesn't match expected">
+    - Check if there are extra spaces or formatting differences
+    - Verify the data type (string vs number)
+    - Use the preview API to see the normalized value
+  </Accordion>
+  
+  <Accordion title="Array queries not working">
+    - Ensure you're using the correct syntax: `#(condition)#`
+    - Check that the array field name is correct
+    - Test with a simpler selector first (e.g., just the array length)
+  </Accordion>
+  
+  <Accordion title="Nested field access fails">
+    - Verify each level of nesting exists
+    - Check for null values in the path
+    - Use the preview API to navigate step by step
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Monitors" icon="plus-circle" href="/guides/creating-monitors">
+    Apply selectors to your monitors
+  </Card>
+  <Card title="Monitoring Strategies" icon="chart-line" href="/guides/monitoring-strategies">
+    Learn when to use selectors vs simple checks
+  </Card>
+  <Card title="Selector Preview API" icon="code" href="/api/utilities/selector-preview">
+    API reference for testing selectors
+  </Card>
+  <Card title="gjson Documentation" icon="book" href="https://github.com/tidwall/gjson">
+    Full gjson syntax reference
+  </Card>
+</CardGroup>

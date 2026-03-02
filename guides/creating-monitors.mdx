@@ -1,0 +1,311 @@
+---
+title: Creating Monitors
+description: Step-by-step guide to creating and configuring monitors in Goanna
+icon: plus-circle
+---
+
+Monitors are the core of Goanna - they define what endpoints to check, how often to check them, and what constitutes a successful response.
+
+## Creating a Monitor via Web UI
+
+The easiest way to create a monitor is through the Goanna web interface:
+
+1. Navigate to the Monitors page
+2. Click the "Add Monitor" button
+3. Fill in the monitor configuration form
+4. Test the monitor to verify it works
+5. Save the monitor to start automated checks
+
+## Monitor Configuration
+
+### Basic Settings
+
+<ParamField path="label" type="string" optional>
+  A friendly name for your monitor to help identify it in the dashboard
+</ParamField>
+
+<ParamField path="url" type="string" required>
+  The full URL to monitor (e.g., `https://api.example.com/health`)
+</ParamField>
+
+<ParamField path="method" type="string" default="GET">
+  HTTP method to use: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`
+</ParamField>
+
+<ParamField path="iconUrl" type="string" optional>
+  URL to an icon/favicon to display for this monitor
+</ParamField>
+
+### Request Configuration
+
+#### Headers
+
+Add custom HTTP headers for your request. Common use cases:
+
+```json
+{
+  "Content-Type": "application/json",
+  "Accept": "application/json",
+  "X-API-Version": "v1"
+}
+```
+
+#### Request Body
+
+For `POST`, `PUT`, or `PATCH` requests, you can specify a request body:
+
+<CodeGroup>
+
+```json JSON
+{
+  "query": "{ health { status } }",
+  "variables": {}
+}
+```
+
+```xml XML
+<?xml version="1.0"?>
+<healthCheck>
+  <service>api</service>
+</healthCheck>
+```
+
+```text Plain Text
+action=check&service=health
+```
+
+</CodeGroup>
+
+<Tip>
+Make sure to set the appropriate `Content-Type` header when using request bodies
+</Tip>
+
+#### Authentication
+
+Goanna supports various authentication methods through custom headers and auth configuration:
+
+<Tabs>
+  <Tab title="Bearer Token">
+    Add to headers:
+    ```json
+    {
+      "Authorization": "Bearer YOUR_TOKEN_HERE"
+    }
+    ```
+  </Tab>
+  <Tab title="Basic Auth">
+    Configure in the auth section or add to headers:
+    ```json
+    {
+      "Authorization": "Basic BASE64_ENCODED_CREDENTIALS"
+    }
+    ```
+  </Tab>
+  <Tab title="API Key">
+    Add as a custom header:
+    ```json
+    {
+      "X-API-Key": "YOUR_API_KEY"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Response Validation
+
+#### Expected Response Type
+
+<ParamField path="expectedType" type="string" default="json">
+  The format of the expected response:
+  - `json` - Validate JSON responses and use selectors
+  - `html` - Check HTML content
+  - `text` - Validate plain text responses
+</ParamField>
+
+#### JSON Selectors
+
+When `expectedType` is `json`, you can use gjson selectors to extract and validate specific fields:
+
+<ParamField path="selector" type="string" optional>
+  A gjson path to select a specific value from the JSON response. See [Understanding Selectors](/guides/understanding-selectors) for details.
+</ParamField>
+
+<ParamField path="expectedResponse" type="string" optional>
+  The expected value after applying the selector. If specified, the monitor will fail if the actual value doesn't match.
+</ParamField>
+
+**Examples:**
+
+<CodeGroup>
+
+```json Response
+{
+  "status": "operational",
+  "services": {
+    "api": "healthy",
+    "database": "healthy"
+  },
+  "uptime": 99.99
+}
+```
+
+</CodeGroup>
+
+<AccordionGroup>
+  <Accordion title="Check status field">
+    - Selector: `status`
+    - Expected: `operational`
+  </Accordion>
+  
+  <Accordion title="Check nested service">
+    - Selector: `services.api`
+    - Expected: `healthy`
+  </Accordion>
+  
+  <Accordion title="Check uptime threshold">
+    - Selector: `uptime`
+    - Expected: `99.99` (exact match)
+  </Accordion>
+  
+  <Accordion title="No validation (just monitor)">
+    - Selector: (empty)
+    - Expected: (empty)
+    - Monitor succeeds if response is valid JSON and status code is OK
+  </Accordion>
+</AccordionGroup>
+
+### Schedule Configuration
+
+<ParamField path="cron" type="string" required>
+  A cron expression defining how often to run the check. Uses standard 5-field cron syntax: `minute hour day month weekday`
+</ParamField>
+
+**Common schedules:**
+
+| Interval | Cron Expression | Description |
+|----------|----------------|-------------|
+| Every 5 minutes | `*/5 * * * *` | Runs at :00, :05, :10, etc. |
+| Every 15 minutes | `*/15 * * * *` | Runs at :00, :15, :30, :45 |
+| Every hour | `0 * * * *` | Runs at the start of each hour |
+| Every 6 hours | `0 */6 * * *` | Runs at 00:00, 06:00, 12:00, 18:00 |
+| Daily at midnight | `0 0 * * *` | Runs once per day |
+| Weekdays at 9am | `0 9 * * 1-5` | Monday through Friday |
+
+<Note>
+See [Monitoring Strategies](/guides/monitoring-strategies) for guidance on choosing appropriate check intervals
+</Note>
+
+### Notification Settings
+
+<ParamField path="notificationChannels" type="array" optional>
+  List of notification channels to alert when the monitor fails. Currently supported: `["telegram"]`
+</ParamField>
+
+<Warning>
+Make sure you've configured your notification channels in Settings before enabling them on monitors. See [Setting Up Notifications](/guides/setting-up-notifications).
+</Warning>
+
+### Activation
+
+<ParamField path="enabled" type="boolean" default="true">
+  Whether the monitor should run on its schedule. Disabled monitors are not checked automatically but can still be triggered manually.
+</ParamField>
+
+<ParamField path="triggerOnCreate" type="boolean" default="false">
+  If true, runs the monitor immediately after creation (useful for testing)
+</ParamField>
+
+## Testing Your Monitor
+
+Before saving, it's important to test your monitor configuration:
+
+1. Fill in all required fields
+2. Click the "Test Monitor" button
+3. Review the test response:
+   - Status code
+   - Response headers
+   - Response body
+   - Selected value (if using a selector)
+   - Validation result
+
+<Check>
+A successful test shows a green status and confirms your configuration is correct
+</Check>
+
+## Complete Example
+
+Here's a complete monitor configuration for checking a JSON API:
+
+```json
+{
+  "label": "Production API Health",
+  "method": "GET",
+  "url": "https://api.production.example.com/health",
+  "headers": {
+    "Authorization": "Bearer prod_token_123",
+    "Accept": "application/json"
+  },
+  "expectedType": "json",
+  "selector": "status",
+  "expectedResponse": "healthy",
+  "cron": "*/5 * * * *",
+  "notificationChannels": ["telegram"],
+  "enabled": true
+}
+```
+
+This monitor:
+- Checks every 5 minutes
+- Makes an authenticated GET request
+- Expects a JSON response with `{"status": "healthy"}`
+- Sends Telegram alerts on failures
+
+## Managing Monitors
+
+### Editing Monitors
+
+1. Click on a monitor in the dashboard
+2. Click the "Edit" button
+3. Update the configuration
+4. Test if needed
+5. Save changes
+
+### Manual Triggers
+
+You can manually trigger any monitor to run immediately:
+
+1. Find the monitor in the dashboard
+2. Click the "Run Now" button
+3. Wait for the check to complete
+4. View the results
+
+<Tip>
+Manual triggers are useful for debugging or verifying fixes without waiting for the next scheduled check
+</Tip>
+
+### Deleting Monitors
+
+<Warning>
+Deleting a monitor also deletes its check history. This action cannot be undone.
+</Warning>
+
+1. Open the monitor details
+2. Click the "Delete" button
+3. Confirm the deletion
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Understanding Selectors" icon="filter" href="/guides/understanding-selectors">
+    Learn how to use gjson selectors to validate specific JSON fields
+  </Card>
+  <Card title="Setting Up Notifications" icon="bell" href="/guides/setting-up-notifications">
+    Configure Telegram notifications for monitor failures
+  </Card>
+  <Card title="Monitoring Strategies" icon="chart-line" href="/guides/monitoring-strategies">
+    Best practices for effective monitoring
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/monitors/create">
+    Full API documentation for creating monitors
+  </Card>
+</CardGroup>

@@ -1,0 +1,111 @@
+---
+title: 'Runtime Settings'
+api: 'GET /v1/settings/runtime'
+---
+
+Manage global runtime settings for Goanna.
+
+## Get Runtime Settings
+
+<api>GET /v1/settings/runtime</api>
+
+Retrieve the current global runtime settings.
+
+### Response
+
+<ResponseField name="checksHistoryLimit" type="integer" required>
+  Maximum number of checks to retain in history per monitor (minimum: 10)
+</ResponseField>
+
+<ResponseField name="timezone" type="string">
+  Timezone for display purposes (e.g., "America/New_York")
+</ResponseField>
+
+<ResponseField name="requiredSettings" type="array" required>
+  List of setting names that are required but not yet configured
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of last update
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET http://localhost:8080/v1/settings/runtime
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+{
+  "checksHistoryLimit": 100,
+  "timezone": "America/New_York",
+  "requiredSettings": [],
+  "updatedAt": "2026-03-02T10:00:00Z"
+}
+```
+</ResponseExample>
+
+---
+
+## Update Runtime Settings
+
+<api>PUT /v1/settings/runtime</api>
+
+Update the global runtime settings.
+
+### Request Body
+
+<ParamField body="checksHistoryLimit" type="integer" required>
+  Maximum number of checks to retain in history per monitor (minimum: 10)
+</ParamField>
+
+<ParamField body="timezone" type="string" required>
+  Timezone for display purposes (e.g., "America/New_York", "UTC")
+</ParamField>
+
+### Response
+
+<ResponseField name="checksHistoryLimit" type="integer" required>
+  Maximum number of checks to retain in history per monitor
+</ResponseField>
+
+<ResponseField name="timezone" type="string">
+  Timezone for display purposes
+</ResponseField>
+
+<ResponseField name="requiredSettings" type="array" required>
+  List of setting names that are required but not yet configured
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of last update
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X PUT http://localhost:8080/v1/settings/runtime \
+  -H "Content-Type: application/json" \
+  -d '{
+    "checksHistoryLimit": 200,
+    "timezone": "UTC"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Response
+{
+  "checksHistoryLimit": 200,
+  "timezone": "UTC",
+  "requiredSettings": [],
+  "updatedAt": "2026-03-02T10:30:00Z"
+}
+```
+
+```json 400 Response
+{
+  "error": "checksHistoryLimit must be at least 10"
+}
+```
+</ResponseExample>

@@ -1,0 +1,315 @@
+---
+title: Scheduling
+description: Use cron expressions to define flexible check schedules for your monitors
+---
+
+## Overview
+
+Goanna uses cron expressions to schedule monitor checks. This provides flexible scheduling options, from checking every minute to complex schedules like "every weekday at 9 AM". The background worker continuously polls enabled monitors and executes checks according to their schedules.
+
+## Cron-Based Scheduling
+
+Each monitor requires a `cron` field that defines when checks should run. Cron expressions consist of five fields:
+
+```
+┌───────────── minute (0 - 59)
+│ ┌───────────── hour (0 - 23)
+│ │ ┌───────────── day of month (1 - 31)
+│ │ │ ┌───────────── month (1 - 12)
+│ │ │ │ ┌───────────── day of week (0 - 6) (Sunday to Saturday)
+│ │ │ │ │
+│ │ │ │ │
+* * * * *
+```
+
+### Common Schedules
+
+<AccordionGroup>
+  <Accordion title="Every Minute">
+    ```
+    * * * * *
+    ```
+    Runs every minute, 24/7
+  </Accordion>
+  
+  <Accordion title="Every 5 Minutes">
+    ```
+    */5 * * * *
+    ```
+    Runs at :00, :05, :10, :15, etc.
+  </Accordion>
+  
+  <Accordion title="Every 15 Minutes">
+    ```
+    */15 * * * *
+    ```
+    Runs at :00, :15, :30, :45
+  </Accordion>
+  
+  <Accordion title="Every Hour">
+    ```
+    0 * * * *
+    ```
+    Runs at the top of every hour
+  </Accordion>
+  
+  <Accordion title="Every 6 Hours">
+    ```
+    0 */6 * * *
+    ```
+    Runs at midnight, 6 AM, noon, and 6 PM
+  </Accordion>
+  
+  <Accordion title="Daily at Midnight">
+    ```
+    0 0 * * *
+    ```
+    Runs once per day at 00:00
+  </Accordion>
+  
+  <Accordion title="Weekdays at 9 AM">
+    ```
+    0 9 * * 1-5
+    ```
+    Runs Monday through Friday at 9:00 AM
+  </Accordion>
+  
+  <Accordion title="First Day of Month">
+    ```
+    0 0 1 * *
+    ```
+    Runs at midnight on the 1st of each month
+  </Accordion>
+</AccordionGroup>
+
+### Cron Expression Syntax
+
+<ParamField path="*" type="wildcard">
+  Matches any value (e.g., `* * * * *` runs every minute)
+</ParamField>
+
+<ParamField path="," type="list">
+  Separates multiple values (e.g., `0,30 * * * *` runs at :00 and :30)
+</ParamField>
+
+<ParamField path="-" type="range">
+  Defines a range (e.g., `0 9-17 * * *` runs hourly from 9 AM to 5 PM)
+</ParamField>
+
+<ParamField path="/" type="step">
+  Defines a step interval (e.g., `*/10 * * * *` runs every 10 minutes)
+</ParamField>
+
+## Built-In Cron Builder
+
+Goanna's web UI includes a visual cron expression builder, so you don't need to memorize cron syntax:
+
+<Steps>
+  <Step title="Select Frequency">
+    Choose from common patterns like "Every 5 minutes", "Hourly", "Daily", etc.
+  </Step>
+  
+  <Step title="Customize Details">
+    Fine-tune the schedule with specific times, days, or intervals
+  </Step>
+  
+  <Step title="Preview Next Runs">
+    See when the next several checks will execute based on your expression
+  </Step>
+</Steps>
+
+<Tip>
+  The cron builder shows human-readable descriptions of your schedule and highlights any potential issues, like expressions that would run too frequently.
+</Tip>
+
+## Background Worker
+
+Goanna's background worker is responsible for executing scheduled checks. It runs continuously as part of the API server.
+
+### Worker Behavior
+
+The worker operates as follows:
+
+1. **Poll monitors** - Periodically scans all enabled monitors
+2. **Schedule evaluation** - Determines which monitors are due for a check based on their cron expression and `nextRunAt` timestamp
+3. **Execute checks** - Performs HTTP requests to monitor endpoints
+4. **Store results** - Saves check results to the database
+5. **Update status** - Updates monitor runtime status and counters
+6. **Trigger notifications** - Sends alerts if the monitor status changed
+7. **Clean up history** - Removes old check results beyond the configured retention limit
+
+<Info>
+  The worker persists runtime status and lifetime counters in the `monitor_runtime` table and stores check history in the `check_results` table.
+</Info>
+
+### Check History Management
+
+To prevent unlimited database growth, the worker automatically manages check history:
+
+- Each monitor retains the latest `checksHistoryLimit` check results (configured in runtime settings)
+- Older checks are automatically deleted when new checks are added
+- Minimum retention is 10 checks per monitor
+
+```json
+{
+  "checksHistoryLimit": 100,
+  "timezone": "UTC"
+}
+```
+
+## Schedule Configuration Examples
+
+<CodeGroup>
+```json High-Frequency Monitor
+{
+  "label": "Critical API",
+  "url": "https://api.example.com/health",
+  "cron": "* * * * *",
+  "notificationChannels": ["telegram"]
+}
+```
+
+```json Business Hours Monitor
+{
+  "label": "Office VPN",
+  "url": "https://vpn.example.com/status",
+  "cron": "*/30 9-17 * * 1-5",
+  "notificationChannels": ["telegram"]
+}
+```
+
+```json Daily Report Monitor
+{
+  "label": "Daily Metrics",
+  "url": "https://api.example.com/reports/daily",
+  "cron": "0 0 * * *",
+  "notificationChannels": ["telegram"]
+}
+```
+
+```json Weekend Monitor
+{
+  "label": "Batch Jobs",
+  "url": "https://api.example.com/jobs/status",
+  "cron": "0 0 * * 0,6"
+}
+```
+</CodeGroup>
+
+## Viewing Schedule Information
+
+Each monitor includes schedule-related fields:
+
+<ResponseField name="cron" type="string">
+  The cron expression defining the check schedule
+</ResponseField>
+
+<ResponseField name="nextRunAt" type="string">
+  ISO 8601 timestamp of the next scheduled check
+</ResponseField>
+
+<ResponseField name="lastCheckAt" type="string">
+  ISO 8601 timestamp of the most recent check
+</ResponseField>
+
+<ResponseField name="enabled" type="boolean">
+  Whether the monitor is enabled and will run on schedule
+</ResponseField>
+
+Example response:
+
+```json
+{
+  "id": 123,
+  "url": "https://api.example.com/health",
+  "cron": "*/5 * * * *",
+  "enabled": true,
+  "nextRunAt": "2026-03-02T10:35:00Z",
+  "lastCheckAt": "2026-03-02T10:30:00Z"
+}
+```
+
+## Timezone Handling
+
+Goanna uses UTC for all timestamps by default. You can configure a different timezone in the runtime settings:
+
+<CodeGroup>
+```bash curl
+curl -X PUT http://localhost:8080/v1/settings/runtime \
+  -H "Content-Type: application/json" \
+  -d '{
+    "checksHistoryLimit": 100,
+    "timezone": "America/New_York"
+  }'
+```
+
+```typescript TypeScript
+await client.upsertRuntimeSettings({
+  checksHistoryLimit: 100,
+  timezone: 'America/New_York'
+})
+```
+</CodeGroup>
+
+<Warning>
+  Changing the timezone affects how cron expressions are evaluated. Ensure all monitors are configured with the correct timezone in mind.
+</Warning>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Balance Frequency" icon="scale-balanced">
+    Choose check frequencies that balance timely detection with server load. Most monitors don't need to check every minute.
+  </Card>
+  
+  <Card title="Consider Time Zones" icon="clock">
+    If you schedule checks for specific times of day, ensure your timezone is configured correctly.
+  </Card>
+  
+  <Card title="Use Step Values" icon="forward-step">
+    Prefer step values (`*/5`) over lists (`0,5,10,15,...`) for cleaner expressions.
+  </Card>
+  
+  <Card title="Test Schedules" icon="flask">
+    Use the cron builder to preview next run times before deploying new schedules.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Monitor Not Running
+
+If a monitor isn't executing on schedule:
+
+1. **Check if enabled** - Ensure `enabled: true` in the monitor configuration
+2. **Verify cron expression** - Use the cron builder to validate the expression
+3. **Check nextRunAt** - Confirm the next run time is in the future
+4. **Review worker logs** - Check for worker errors or scheduling issues
+
+### Unexpected Schedule
+
+If checks run at unexpected times:
+
+1. **Verify timezone** - Check runtime settings for the configured timezone
+2. **Validate expression** - Use the cron builder to preview the schedule
+3. **Check for conflicts** - Ensure the expression matches your intended schedule
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Monitors" icon="desktop" href="/features/monitors">
+    Configure monitors with custom schedules
+  </Card>
+  
+  <Card title="Check Results" icon="clock-rotate-left" href="/features/checks">
+    View the results of scheduled checks
+  </Card>
+  
+  <Card title="Runtime Settings" icon="gear" href="/api/settings/runtime">
+    Configure check retention and timezone
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/monitors/create">
+    Explore the monitors API documentation
+  </Card>
+</CardGroup>

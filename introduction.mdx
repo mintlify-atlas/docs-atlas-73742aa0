@@ -1,0 +1,92 @@
+---
+title: Introduction
+description: Welcome to Goanna - a self-hosted web endpoint monitoring platform
+---
+
+# Welcome to Goanna
+
+Goanna is a self-hosted web endpoint monitoring platform that helps you track the health and performance of your web services. Built with a modern stack, Goanna provides real-time monitoring capabilities with flexible scheduling and notification options.
+
+## What is Goanna?
+
+Goanna monitors your web endpoints by making HTTP requests on a scheduled basis and tracking their responses. Whether you're monitoring API health, checking specific JSON values, or tracking uptime, Goanna gives you the tools to stay informed about your services.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Scheduled Monitoring" icon="clock">
+    Monitor endpoints using cron expressions with a built-in cron builder for easy schedule configuration.
+  </Card>
+  
+  <Card title="HTTP Request Control" icon="globe">
+    Full control over HTTP methods, custom headers, request bodies, and authentication.
+  </Card>
+  
+  <Card title="JSON Path Selectors" icon="code">
+    Extract and monitor specific values from JSON responses using gjson selectors.
+  </Card>
+  
+  <Card title="Telegram Notifications" icon="telegram">
+    Get instant alerts through Telegram when your monitors detect issues.
+  </Card>
+  
+  <Card title="Check History" icon="clock-rotate-left">
+    Track monitor execution history with configurable retention periods.
+  </Card>
+  
+  <Card title="Real-time Status" icon="signal">
+    Monitor status tracking with states: pending, ok, error, retrying, and disabled.
+  </Card>
+  
+  <Card title="Response Validation" icon="check-circle">
+    Validate responses against expected content types (JSON, HTML, text) and specific values.
+  </Card>
+  
+  <Card title="Docker Ready" icon="docker">
+    Single-container deployment with both web UI and API bundled together.
+  </Card>
+</CardGroup>
+
+## Tech Stack
+
+Goanna is built with:
+
+- **Frontend**: TanStack Start + React + Tailwind + shadcn/ui
+- **Backend**: Go API with Ent ORM
+- **Database**: SQLite
+- **Deployment**: Docker (single container for both services)
+
+## Get Started
+
+<CardGroup cols={3}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get Goanna running in minutes with Docker
+  </Card>
+  
+  <Card title="Installation" icon="download" href="/installation">
+    Detailed installation options and configuration
+  </Card>
+  
+  <Card title="API Reference" icon="book" href="/api/overview">
+    Complete API documentation for integration
+  </Card>
+</CardGroup>
+
+## Use Cases
+
+- **API Health Monitoring**: Track the health of your REST APIs with scheduled checks
+- **Uptime Monitoring**: Monitor website availability and response times
+- **Data Change Detection**: Watch for changes in specific JSON values from your endpoints
+- **Service Dependency Tracking**: Monitor third-party services your application depends on
+- **Performance Monitoring**: Track response times and identify slow endpoints
+
+## Architecture
+
+Goanna uses a monorepo structure with:
+
+- `apps/web` - Frontend application (TanStack Start + React)
+- `apps/api` - Backend API (Go + Ent ORM + SQLite)
+- `packages/api-client` - Generated TypeScript client from OpenAPI
+- `openapi/openapi.yaml` - Shared API contract
+
+The production deployment bundles both the web UI and API into a single Docker container for easy deployment and management.

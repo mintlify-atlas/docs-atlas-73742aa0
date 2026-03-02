@@ -1,80 +1,197 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get Goanna up and running in minutes
 ---
 
-## Get started in three steps
+# Quickstart
 
-Get your documentation site running locally and make your first customization.
+Get Goanna monitoring your endpoints in just a few minutes with Docker.
 
-### Step 1: Set up your local environment
+## Prerequisites
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+<Tabs>
+  <Tab title="Docker (Recommended)">
+    - Docker installed on your machine
+    - Port 9044 available (or customize the port)
+  </Tab>
+  
+  <Tab title="Development">
+    - Bun 1.3+
+    - Go 1.24+
+  </Tab>
+  
+  <Tab title="Docker Compose">
+    - Docker Compose installed
+    - Ports 9044 and optionally 8080 available
+  </Tab>
+</Tabs>
+
+## Quick start with Docker
+
+The fastest way to get started is using Docker:
+
+<Steps>
+  <Step title="Create a data directory">
+    Create a directory to persist your monitoring data:
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```bash
+    mkdir -p ./data
+    ```
+  </Step>
 
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+  <Step title="Run Goanna">
+    Start Goanna with a single command:
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
+    ```bash
+    docker run -d \
+      --name goanna \
+      -p 9044:9044 \
+      -v ./data:/app/data \
+      ghcr.io/simbesh/goanna:latest
+    ```
+    
+    <Note>
+      This uses the pre-built image from GitHub Container Registry. To build locally, see the [Installation](/installation) guide.
+    </Note>
+  </Step>
+
+  <Step title="Access the web interface">
+    Open your browser and navigate to:
+    
+    ```
+    http://localhost:9044
+    ```
+  </Step>
+</Steps>
+
+## Create your first monitor
+
+Now that Goanna is running, let's create your first monitor:
+
+<Steps>
+  <Step title="Open the monitor creation form">
+    In the web interface, you'll see the monitor configuration form on the main page.
+  </Step>
+
+  <Step title="Configure a simple health check">
+    Enter the following details:
+    
+    - **URL**: `https://api.github.com/status`
+    - **Method**: `GET`
+    - **Expected Type**: `json`
+    - **Cron Schedule**: `*/5 * * * *` (every 5 minutes)
+    
+    <Tip>
+      Use the built-in cron builder to create schedules visually, or enter cron expressions directly.
+    </Tip>
+  </Step>
+
+  <Step title="Save the monitor">
+    Click **Create Monitor** to save your configuration. You can optionally check **Trigger on create** to run the monitor immediately.
+  </Step>
+
+  <Step title="View check results">
+    Once the monitor runs, you'll see:
+    - Monitor status (ok, error, pending, retrying)
+    - Response time
+    - Status code
+    - Check history
+  </Step>
+</Steps>
+
+## Test your monitor manually
+
+You can manually trigger any monitor without waiting for the scheduled time:
+
+<Steps>
+  <Step title="Find your monitor">
+    Locate the monitor you just created in the monitors list.
+  </Step>
+
+  <Step title="Trigger the check">
+    Click the **Trigger** button to run the monitor immediately.
+  </Step>
+
+  <Step title="View the results">
+    The check results will appear in the monitor's history, showing the response status and timing.
+  </Step>
+</Steps>
+
+## Optional: Set up Telegram notifications
+
+Want to receive alerts when your monitors fail? Set up Telegram notifications:
+
+<Accordion title="Configure Telegram notifications">
+  <Steps>
+    <Step title="Create a Telegram bot">
+      1. Open Telegram and search for [@BotFather](https://t.me/botfather)
+      2. Send `/newbot` and follow the prompts
+      3. Save your bot token (looks like `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`)
+    </Step>
+
+    <Step title="Get your chat ID">
+      1. Start a conversation with your bot
+      2. Send any message to your bot
+      3. Visit `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+      4. Find the `chat.id` value in the response
+    </Step>
+
+    <Step title="Configure in Goanna">
+      1. Navigate to **Settings** in Goanna
+      2. Go to the **Notifications** tab
+      3. Enter your bot token and chat ID
+      4. Click **Test** to verify it works
+      5. Save your settings
+    </Step>
+
+    <Step title="Enable notifications on monitors">
+      When creating or editing a monitor, select **Telegram** in the notification channels section.
+    </Step>
+  </Steps>
 </Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+## Troubleshooting
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+<Accordion title="Container won't start">
+  Check the logs for error messages:
+  
+  ```bash
+  docker logs goanna
+  ```
+  
+  Common issues:
+  - Port 9044 is already in use - change the port mapping: `-p 8080:9044`
+  - Volume mount permission issues - ensure the `./data` directory has proper permissions
+</Accordion>
 
-### Step 3: Go live
+<Accordion title="Can't access the web interface">
+  - Verify the container is running: `docker ps | grep goanna`
+  - Check that port 9044 is accessible: `curl http://localhost:9044/healthz`
+  - If using a remote server, ensure the port is open in your firewall
+</Accordion>
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
+<Accordion title="Monitor not executing">
+  - Verify the cron expression is valid
+  - Check that the monitor is enabled (not disabled)
+  - Look at the monitor's `nextRunAt` timestamp to see when it will run next
 </Accordion>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Create advanced monitors" icon="chart-line" href="/guides/creating-monitors">
+    Learn about custom headers, authentication, and JSON selectors
+  </Card>
+  
+  <Card title="Set up notifications" icon="bell" href="/guides/setting-up-notifications">
+    Configure Telegram alerts for monitor failures
+  </Card>
+  
+  <Card title="Deploy to production" icon="server" href="/deployment/docker-compose">
+    Use Docker Compose for production deployments
+  </Card>
+  
+  <Card title="Explore the API" icon="code" href="/api/overview">
+    Integrate Goanna with your systems using the REST API
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

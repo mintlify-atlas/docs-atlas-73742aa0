@@ -1,0 +1,175 @@
+---
+title: 'Trigger Monitor'
+api: 'POST /v1/monitors/{monitorId}/trigger'
+---
+
+Manually trigger a monitor to run immediately, outside of its scheduled cron timing.
+
+## Path Parameters
+
+<ParamField path="monitorId" type="integer" required>
+  The unique identifier of the monitor to trigger
+</ParamField>
+
+## Response
+
+<ResponseField name="monitor" type="object" required>
+  The monitor object
+  
+  <Expandable title="Monitor Object">
+    <ResponseField name="id" type="integer" required>
+      Unique identifier for the monitor
+    </ResponseField>
+    
+    <ResponseField name="label" type="string">
+      Optional label for the monitor
+    </ResponseField>
+    
+    <ResponseField name="method" type="string" required>
+      HTTP method
+    </ResponseField>
+    
+    <ResponseField name="url" type="string" required>
+      Target URL
+    </ResponseField>
+    
+    <ResponseField name="status" type="string" required>
+      Current monitor status
+    </ResponseField>
+    
+    <ResponseField name="enabled" type="boolean" required>
+      Whether the monitor is enabled
+    </ResponseField>
+    
+    <ResponseField name="cron" type="string" required>
+      Cron schedule expression
+    </ResponseField>
+    
+    <ResponseField name="lastCheckAt" type="string">
+      Timestamp of last check (ISO 8601)
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string" required>
+      Last update timestamp (ISO 8601)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="check" type="object">
+  The check result from the triggered execution
+  
+  <Expandable title="Check Object">
+    <ResponseField name="id" type="integer" required>
+      Check identifier
+    </ResponseField>
+    
+    <ResponseField name="status" type="string" required>
+      Check status: `ok`, `error`, `retrying`, `pending`, or `unknown`
+    </ResponseField>
+    
+    <ResponseField name="statusCode" type="integer">
+      HTTP status code received
+    </ResponseField>
+    
+    <ResponseField name="responseTimeMs" type="integer">
+      Response time in milliseconds
+    </ResponseField>
+    
+    <ResponseField name="errorMessage" type="string">
+      Error message if check failed
+    </ResponseField>
+    
+    <ResponseField name="selectionType" type="string">
+      Type of value selected by selector
+    </ResponseField>
+    
+    <ResponseField name="selectionValue" type="string">
+      Value selected by selector
+    </ResponseField>
+    
+    <ResponseField name="diffChanged" type="boolean" required>
+      Whether the response changed from previous check
+    </ResponseField>
+    
+    <ResponseField name="diffKind" type="string">
+      Type of difference detected
+    </ResponseField>
+    
+    <ResponseField name="diffSummary" type="string">
+      Summary of changes
+    </ResponseField>
+    
+    <ResponseField name="diffDetails" type="string">
+      Detailed change information
+    </ResponseField>
+    
+    <ResponseField name="checkedAt" type="string" required>
+      Timestamp of check (ISO 8601)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST http://localhost:8080/v1/monitors/1/trigger
+```
+
+## Example Response
+
+```json
+{
+  "monitor": {
+    "id": 1,
+    "label": "API Health Check",
+    "method": "GET",
+    "url": "https://api.example.com/health",
+    "iconUrl": "https://example.com/icon.png",
+    "body": null,
+    "headers": {},
+    "auth": {},
+    "notificationChannels": ["telegram"],
+    "notificationIssues": [],
+    "selector": "status",
+    "expectedType": "json",
+    "expectedResponse": "ok",
+    "cron": "*/5 * * * *",
+    "enabled": true,
+    "status": "ok",
+    "checkCount": 153,
+    "nextRunAt": "2026-03-02T10:35:00Z",
+    "lastCheckAt": "2026-03-02T10:30:15Z",
+    "lastSuccessAt": "2026-03-02T10:30:15Z",
+    "lastErrorAt": null,
+    "lastStatusCode": 200,
+    "lastDurationMs": 142,
+    "lastErrorMessage": null,
+    "createdAt": "2026-02-15T08:00:00Z",
+    "updatedAt": "2026-03-02T10:30:15Z"
+  },
+  "check": {
+    "id": 153,
+    "status": "ok",
+    "statusCode": 200,
+    "responseTimeMs": 142,
+    "errorMessage": null,
+    "selectionType": "string",
+    "selectionValue": "ok",
+    "diffChanged": false,
+    "diffKind": null,
+    "diffSummary": null,
+    "diffDetails": null,
+    "checkedAt": "2026-03-02T10:30:15Z"
+  }
+}
+```
+
+## Error Responses
+
+<ResponseField name="400">
+  Monitor cannot be triggered - the monitor may be in an invalid state
+</ResponseField>
+
+<ResponseField name="404">
+  Monitor not found - the specified monitorId does not exist
+</ResponseField>

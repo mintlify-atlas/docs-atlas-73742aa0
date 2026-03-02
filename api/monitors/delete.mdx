@@ -1,0 +1,34 @@
+---
+title: 'Delete Monitor'
+api: 'DELETE /v1/monitors/{monitorId}'
+---
+
+Delete a monitor and stop all scheduled checks.
+
+## Path Parameters
+
+<ParamField path="monitorId" type="integer" required>
+  The unique identifier of the monitor to delete
+</ParamField>
+
+## Response
+
+Returns a `204 No Content` status on successful deletion with no response body.
+
+## Example Request
+
+```bash
+curl -X DELETE http://localhost:8080/v1/monitors/1
+```
+
+## Example Response
+
+```
+HTTP/1.1 204 No Content
+```
+
+## Error Responses
+
+<ResponseField name="404">
+  Monitor not found - the specified monitorId does not exist
+</ResponseField>

@@ -1,0 +1,220 @@
+---
+title: Check Results
+description: Track detailed check history, response times, and content changes for your monitors
+---
+
+## What are Check Results?
+
+Every time a monitor runs, Goanna creates a check result that records the outcome of that execution. Check results provide a complete history of your monitor's performance, including status, response time, error messages, and content changes.
+
+## Check Data
+
+Each check result contains comprehensive information about the monitor execution:
+
+### Status Information
+
+<ResponseField name="status" type="string" required>
+  The outcome of the check
+  
+  <Expandable title="Available statuses">
+    - `ok` - Check succeeded
+    - `error` - Check failed
+    - `retrying` - Check failed but within retry threshold
+    - `pending` - Check is queued but not yet executed
+    - `unknown` - Check status could not be determined
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="statusCode" type="integer">
+  HTTP status code returned by the endpoint (e.g., 200, 404, 500)
+</ResponseField>
+
+<ResponseField name="responseTimeMs" type="integer">
+  Response time in milliseconds from request start to completion
+</ResponseField>
+
+<ResponseField name="errorMessage" type="string">
+  Detailed error message if the check failed (e.g., network errors, timeout, validation failures)
+</ResponseField>
+
+### Selection and Validation
+
+<ResponseField name="selectionType" type="string">
+  The type of the selected value when using GJSON selectors
+  
+  Possible values: `none`, `null`, `false`, `number`, `string`, `true`, `json`
+</ResponseField>
+
+<ResponseField name="selectionValue" type="string">
+  The normalized value extracted by the selector, used for comparison against `expectedResponse`
+</ResponseField>
+
+### Diff Tracking
+
+Goanna automatically tracks changes in response content between checks:
+
+<ResponseField name="diffChanged" type="boolean" required>
+  Whether the response content changed since the last check
+</ResponseField>
+
+<ResponseField name="diffKind" type="string">
+  The type of change detected (if any)
+</ResponseField>
+
+<ResponseField name="diffSummary" type="string">
+  Human-readable summary of the changes
+</ResponseField>
+
+<ResponseField name="diffDetails" type="string">
+  Detailed diff information showing what changed
+</ResponseField>
+
+<Info>
+  Diff tracking helps you identify when API responses change unexpectedly, even if the status code remains successful.
+</Info>
+
+### Timestamp
+
+<ResponseField name="checkedAt" type="string" required>
+  ISO 8601 timestamp of when the check was executed
+</ResponseField>
+
+<ResponseField name="id" type="integer" required>
+  Unique identifier for the check result
+</ResponseField>
+
+## Check History
+
+Goanna maintains a configurable history of check results for each monitor. You can retrieve recent checks for any monitor:
+
+<CodeGroup>
+```bash curl
+curl "http://localhost:8080/v1/monitors/123/checks?limit=50"
+```
+
+```typescript TypeScript
+const checks = await client.listMonitorChecks({
+  monitorId: 123,
+  limit: 50
+})
+```
+</CodeGroup>
+
+### Query Parameters
+
+<ParamField path="limit" type="integer" default={20}>
+  Number of check results to return (min: 1, max: 500)
+</ParamField>
+
+## Check Retention
+
+Goanna automatically manages check history retention to prevent unlimited database growth. The retention policy is configured in the runtime settings:
+
+- **Default retention**: Configured via `checksHistoryLimit` in runtime settings
+- **Minimum retention**: 10 checks per monitor
+- **Automatic cleanup**: The worker automatically removes older checks beyond the limit
+
+<Tip>
+  You can adjust the check history limit in the runtime settings to balance between historical data retention and database size.
+</Tip>
+
+## Understanding Check Results
+
+### Successful Checks
+
+A check is considered successful when:
+- The HTTP request completes without network errors
+- The response status code is in the 2xx range (unless a different code is expected)
+- If `expectedResponse` is configured, the actual response matches
+- If a selector is used, it successfully extracts the expected value
+
+```json
+{
+  "id": 1234,
+  "status": "ok",
+  "statusCode": 200,
+  "responseTimeMs": 145,
+  "selectionType": "string",
+  "selectionValue": "healthy",
+  "diffChanged": false,
+  "checkedAt": "2026-03-02T10:30:00Z"
+}
+```
+
+### Failed Checks
+
+A check fails when:
+- Network errors occur (DNS resolution, connection timeout, etc.)
+- The server returns an error status code (4xx, 5xx)
+- The response doesn't match the expected value
+- The selector cannot extract the expected data
+
+```json
+{
+  "id": 1235,
+  "status": "error",
+  "statusCode": 500,
+  "responseTimeMs": 2500,
+  "errorMessage": "Internal Server Error: Database connection failed",
+  "diffChanged": true,
+  "diffKind": "status_change",
+  "diffSummary": "Status changed from 200 to 500",
+  "checkedAt": "2026-03-02T10:35:00Z"
+}
+```
+
+### Retrying State
+
+The `retrying` status indicates the monitor is experiencing temporary issues but hasn't reached the failure threshold:
+
+```json
+{
+  "id": 1236,
+  "status": "retrying",
+  "statusCode": 503,
+  "responseTimeMs": 1200,
+  "errorMessage": "Service Unavailable: Temporary maintenance",
+  "checkedAt": "2026-03-02T10:40:00Z"
+}
+```
+
+## Viewing Check Results
+
+Check results are accessible through:
+
+1. **Monitor detail page** - View the latest checks for a specific monitor
+2. **API endpoint** - Programmatically retrieve check history
+3. **Notifications** - Receive alerts when checks fail or recover
+
+## Performance Insights
+
+Use check results to gain insights into your endpoints:
+
+- **Response time trends** - Track performance degradation over time
+- **Availability metrics** - Calculate uptime percentages
+- **Error patterns** - Identify recurring failure modes
+- **Content changes** - Monitor for unexpected API changes
+
+<Warning>
+  High response times (>3000ms) may indicate performance issues even if the endpoint returns a successful status code.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Monitors" icon="desktop" href="/features/monitors">
+    Configure monitors to generate check results
+  </Card>
+  
+  <Card title="Notifications" icon="bell" href="/features/notifications">
+    Get alerted when checks fail
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/checks/list">
+    Explore the checks API documentation
+  </Card>
+  
+  <Card title="Runtime Settings" icon="gear" href="/api/settings/runtime">
+    Configure check retention policy
+  </Card>
+</CardGroup>
