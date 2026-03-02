@@ -1,0 +1,111 @@
+{
+  "projectType": "saas",
+  "projectName": "Goanna",
+  "projectDescription": "Self-hosted web endpoint monitoring platform with scheduled checks, notifications, and status tracking.",
+  "theme": "palm",
+  "primaryColor": "#3b82f6",
+  "lightColor": "#60a5fa",
+  "darkColor": "#2563eb",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart", "installation"]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/monitors",
+              "features/checks",
+              "features/notifications",
+              "features/scheduling"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/docker",
+              "deployment/docker-compose",
+              "deployment/configuration"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/creating-monitors",
+              "guides/setting-up-notifications",
+              "guides/understanding-selectors",
+              "guides/monitoring-strategies"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["api/overview", "api/authentication"]
+          },
+          {
+            "group": "Monitors",
+            "pages": [
+              "api/monitors/list",
+              "api/monitors/create",
+              "api/monitors/update",
+              "api/monitors/delete",
+              "api/monitors/trigger",
+              "api/monitors/test"
+            ]
+          },
+          {
+            "group": "Checks",
+            "pages": ["api/checks/list"]
+          },
+          {
+            "group": "Settings",
+            "pages": [
+              "api/settings/runtime",
+              "api/settings/telegram",
+              "api/settings/test-telegram"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": ["api/utilities/selector-preview", "api/utilities/health"]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Scheduled endpoint monitoring with cron expressions",
+    "HTTP request monitoring with custom headers, body, and authentication",
+    "JSON selector support using gjson for response validation",
+    "Telegram notifications for monitor status changes",
+    "Check history retention with configurable limits",
+    "Real-time monitor status tracking",
+    "Built-in cron expression builder",
+    "Docker deployment with single-container architecture"
+  ],
+  "publicApiSurface": [
+    "GET /v1/monitors",
+    "POST /v1/monitors",
+    "GET /v1/monitors/{monitorId}",
+    "PUT /v1/monitors/{monitorId}",
+    "DELETE /v1/monitors/{monitorId}",
+    "POST /v1/monitors/{monitorId}/trigger",
+    "POST /v1/monitors/test",
+    "POST /v1/monitors/selector-preview",
+    "GET /v1/monitors/{monitorId}/checks",
+    "GET /v1/settings/runtime",
+    "PUT /v1/settings/runtime",
+    "GET /v1/settings/notifications/telegram",
+    "PUT /v1/settings/notifications/telegram",
+    "POST /v1/settings/notifications/telegram/test",
+    "GET /healthz"
+  ]
+}
